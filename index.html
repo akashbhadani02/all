@@ -7,6 +7,10 @@
 <title>Direct Links</title>
 
 <style>
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
@@ -18,7 +22,102 @@ body {
     align-items: center;
 }
 
-/* Popup-style box */
+/* ================= PASSWORD SCREEN ================= */
+
+#passwordScreen {
+    position: fixed;
+    inset: 0;
+    background: #111827;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 99999;
+}
+
+.password-box {
+    width: 90%;
+    max-width: 380px;
+
+    background: #1f2937;
+    padding: 30px;
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 0 30px rgba(79,70,229,0.35),
+        0 20px 60px rgba(0,0,0,0.6);
+
+    text-align: center;
+}
+
+.password-box h2 {
+    color: white;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.password-box p {
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+.password-box input {
+    width: 100%;
+    padding: 14px;
+
+    border: 1px solid #4b5563;
+    border-radius: 10px;
+
+    background: #111827;
+    color: white;
+
+    outline: none;
+    font-size: 16px;
+
+    margin-bottom: 12px;
+}
+
+.password-box input:focus {
+    border-color: #6366f1;
+}
+
+.password-box button {
+    width: 100%;
+    padding: 14px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #4f46e5;
+    color: white;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.password-box button:hover {
+    background: #6366f1;
+}
+
+#error {
+    color: #f87171;
+    font-size: 14px;
+    margin-top: 12px;
+    display: none;
+}
+
+/* ================= MAIN LINKS ================= */
+
+#mainContent {
+    display: none;
+    width: 100%;
+    justify-content: center;
+}
+
 .link-box {
     width: 90%;
     max-width: 420px;
@@ -31,14 +130,12 @@ body {
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
-/* Title */
 .link-box h2 {
     color: white;
     text-align: center;
     margin: 0 0 20px;
 }
 
-/* Direct Link */
 .link-box a {
     display: block;
 
@@ -59,7 +156,6 @@ body {
     transition: 0.2s;
 }
 
-/* Hover */
 .link-box a:hover {
     background: #4f46e5;
     transform: translateY(-2px);
@@ -68,6 +164,40 @@ body {
 </head>
 
 <body>
+
+<!-- ================= PASSWORD ================= -->
+
+<div id="passwordScreen">
+
+    <div class="password-box">
+
+        <h2>🔐 Protected Page</h2>
+
+        <p>Enter password to continue</p>
+
+        <input
+            type="password"
+            id="passwordInput"
+            placeholder="Enter Password"
+            autocomplete="off"
+        >
+
+        <button onclick="checkPassword()">
+            🔓 Unlock
+        </button>
+
+        <div id="error">
+            ❌ Wrong password
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= MAIN CONTENT ================= -->
+
+<div id="mainContent">
 
 <div class="link-box">
 
@@ -86,7 +216,7 @@ body {
     </a>
 
     <a href="https://akashhome.vercel.app" target="_blank">
-         IOT
+        IOT
     </a>
 
     <a href="https://akashstudent.vercel.app" target="_blank">
@@ -94,11 +224,11 @@ body {
     </a>
 
     <a href="https://mywhat.vercel.app" target="_blank">
-        My Whstapp
+        My Whatsapp
     </a>
 
     <a href="https://bhadaniparivar.vercel.app" target="_blank">
-        My family tree
+        My Family Tree
     </a>
 
     <a href="https://student-report-lake.vercel.app/" target="_blank">
@@ -106,43 +236,189 @@ body {
     </a>
 
     <a href="https://akashtutor.vercel.app/" target="_blank">
-        English tutor 
+        English Tutor
     </a>
 
     <a href="https://papers-nu.vercel.app/" target="_blank">
-        paper
+        Paper
     </a>
 
     <a href="https://sjbhadanicoin.vercel.app/" target="_blank">
-        coin and note
+        Coin and Note
     </a>
 
     <a href="https://new-earn-drab.vercel.app/" target="_blank">
-        earn
+        Earn
     </a>
 
     <a href="https://spoken-english-meeting.vercel.app/index.html" target="_blank">
-        Meeting office aducate
+        Meeting Office Aducate
     </a>
 
     <a href="https://zoom-meeting-app-aup6.onrender.com/" target="_blank">
-        mix meeting
+        Mix Meeting
     </a>
 
     <a href="https://akashbhadani02.github.io/Aducate_English" target="_blank">
-        Aducate website
+        Aducate Website
     </a>
 
     <a href="https://akashbhadani02.github.io/attendance/" target="_blank">
-        old student maruti
+        Old Student Maruti
     </a>
 
     <a href="https://akinator-theta.vercel.app/" target="_blank">
-        akinator
+        Akinator
     </a>
 
+</div>
 
 </div>
+
+
+<script>
+
+/* ================= PASSWORD ================= */
+
+const PASSWORD = "deoxy";
+
+function checkPassword() {
+
+    const input = document.getElementById("passwordInput");
+    const error = document.getElementById("error");
+
+    if (input.value === PASSWORD) {
+
+        document.getElementById("passwordScreen").style.display = "none";
+        document.getElementById("mainContent").style.display = "flex";
+
+        sessionStorage.setItem("linkPageUnlocked", "true");
+
+    } else {
+
+        error.style.display = "block";
+
+        input.value = "";
+        input.focus();
+    }
+}
+
+
+/* ENTER KEY */
+
+document.getElementById("passwordInput").addEventListener("keydown", function(e) {
+
+    if (e.key === "Enter") {
+        checkPassword();
+    }
+
+});
+
+
+/* ================= DEVTOOLS / INSPECT BLOCK ================= */
+
+/* Right Click */
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+});
+
+
+/* Keyboard Shortcuts */
+document.addEventListener("keydown", function(e) {
+
+    /* F12 */
+    if (e.key === "F12") {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + I */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "i"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + J */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "j"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + C */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "c"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + U */
+    if (
+        e.ctrlKey &&
+        e.key.toLowerCase() === "u"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+});
+
+
+/* ================= DEVTOOLS DETECTION ================= */
+
+setInterval(function() {
+
+    const threshold = 160;
+
+    if (
+        window.outerWidth - window.innerWidth > threshold ||
+        window.outerHeight - window.innerHeight > threshold
+    ) {
+
+        document.body.innerHTML = `
+            <div style="
+                min-height:100vh;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                background:#111827;
+                color:white;
+                font-family:Arial;
+                text-align:center;
+            ">
+                <div>
+                    <h1>⚠️ Access Blocked</h1>
+                    <p>Please close Developer Tools and refresh the page.</p>
+                </div>
+            </div>
+        `;
+
+    }
+
+}, 1000);
+
+
+/* ================= SESSION ================= */
+
+/* Same browser tab/session ma password fari na mange */
+if (sessionStorage.getItem("linkPageUnlocked") === "true") {
+
+    document.getElementById("passwordScreen").style.display = "none";
+    document.getElementById("mainContent").style.display = "flex";
+
+}
+
+</script>
 
 </body>
 </html>
