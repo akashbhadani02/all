@@ -1,6 +1,6 @@
 const express=require('express'),path=require('path'),multer=require('multer'),crypto=require('crypto'),fs=require('fs');
 const {MongoClient,GridFSBucket,ObjectId}=require('mongodb');
-const app=express(),upload=multer({storage:multer.diskStorage({destination:(req,file,cb)=>cb(null,'/tmp'),filename:(req,file,cb)=>cb(null,crypto.randomBytes(16).toString('hex')+'-'+Date.now())})});
+const app=express(),upload=multer({limits:{files:1},storage:multer.diskStorage({destination:(req,file,cb)=>cb(null,'/tmp'),filename:(req,file,cb)=>cb(null,crypto.randomBytes(16).toString('hex')+'-'+Date.now())})});
 let dbPromise;
 function mongo(){if(!dbPromise){const uri=process.env.MONGODB_URI;if(!uri)throw Error('MONGODB_URI is not configured');const c=new MongoClient(uri);dbPromise=c.connect().then(x=>x.db(process.env.MONGODB_DB||'direct_links'));}return dbPromise;}
 function tokenFor(p){return crypto.createHmac('sha256',process.env.AUTH_SECRET||'change-this-secret').update(String(p)).digest('hex');}

@@ -319,7 +319,7 @@ body {
       <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
       <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
       <label class="drive-btn upload-label">📤 Upload
-        <input type="file" id="fileInput" hidden onchange="uploadFile()">
+        <input type="file" id="fileInput" accept="*/*" hidden onchange="uploadFile()">
       </label>
       <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Please wait while the file is uploading...</div></div>
       <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
