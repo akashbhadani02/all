@@ -110,56 +110,19 @@ body {
     display: none;
 }
 
-/* ================= MAIN LINKS ================= */
-
-#mainContent {
-    display: none;
-    width: 100%;
-    justify-content: center;
-}
-
-.link-box {
-    width: 90%;
-    max-width: 420px;
-
-    background: #1f2937;
-    padding: 25px;
-
-    border-radius: 20px;
-
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.link-box h2 {
-    color: white;
-    text-align: center;
-    margin: 0 0 20px;
-}
-
-.link-box a {
-    display: block;
-
-    text-decoration: none;
-    text-align: center;
-
-    color: white;
-    background: #374151;
-
-    padding: 15px;
-    margin: 10px 0;
-
-    border-radius: 12px;
-
-    font-size: 17px;
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-.link-box a:hover {
-    background: #4f46e5;
-    transform: translateY(-2px);
-}
+/* ================= MAIN DASHBOARD ================= */
+#mainContent{display:none;width:100%;justify-content:center;padding:28px 16px;box-sizing:border-box}
+.dashboard{width:min(1180px,100%)}
+.dashboard-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding:22px 24px;border-radius:22px;background:linear-gradient(135deg,#111827,#312e81);color:#fff;box-shadow:0 18px 55px rgba(0,0,0,.22)}
+.dashboard-header h1{margin:0;font-size:28px}.dashboard-header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}
+.dashboard-actions{display:flex;gap:10px;flex-wrap:wrap}.share-top-btn{border:0;cursor:pointer;background:#fff;color:#312e81;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px;box-shadow:0 5px 18px rgba(0,0,0,.14)}
+.links-card{background:#fff;border-radius:22px;padding:22px;box-shadow:0 12px 40px rgba(15,23,42,.10)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.section-head h2{margin:0;color:#172033}.section-head span{color:#667085;font-size:13px}
+.link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.link-card{display:flex!important;align-items:center;gap:12px;text-decoration:none;text-align:left!important;color:#172033!important;background:#f8fafc!important;border:1px solid #e5e7eb;padding:16px!important;margin:0!important;border-radius:16px!important;font-size:15px!important;font-weight:800!important;transition:.18s!important;min-height:72px;box-sizing:border-box}
+.link-card:hover{background:#eef2ff!important;border-color:#818cf8!important;transform:translateY(-2px)}.link-icon{font-size:26px;flex:none}.link-label{min-width:0;word-break:break-word}
+.file-btn{border:0;cursor:pointer;width:100%;display:block;text-align:center;color:#fff;background:#4f46e5;padding:15px;margin:10px 0;border-radius:12px;font-size:17px;font-weight:bold;transition:.2s}.file-btn:hover{background:#6366f1;transform:translateY(-2px)}
+@media(max-width:650px){#mainContent{padding:14px 10px}.dashboard-header{padding:18px;align-items:flex-start}.dashboard-header h1{font-size:23px}.link-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.link-card{min-height:68px;padding:12px!important;font-size:13px!important}.link-icon{font-size:22px}}
 
 /* FILE SHARING */
 .file-btn{border:0;cursor:pointer;width:100%;display:block;text-align:center;color:#fff;background:#4f46e5;padding:15px;margin:10px 0;border-radius:12px;font-size:17px;font-weight:bold;transition:.2s}.file-btn:hover{background:#6366f1;transform:translateY(-2px)}
@@ -225,85 +188,9 @@ body {
 
 <!-- ================= MAIN CONTENT ================= -->
 
-<div id="mainContent">
-
-<div class="link-box">
-
-    <h2>🔗 My Links</h2>
-
-    <a href="https://akashbhadani02.github.io/Akash-bhadani/" target="_blank">
-        My CV
-    </a>
-
-    <a href="https://www.aducate.online" target="_blank">
-        Aducate App
-    </a>
-
-    <a href="https://tectrum.vercel.app" target="_blank">
-        Tectrum
-    </a>
-
-    <a href="https://akashhome.vercel.app" target="_blank">
-        IOT
-    </a>
-
-    <a href="https://akashstudent.vercel.app" target="_blank">
-        Fees
-    </a>
-
-    <a href="https://mywhat.vercel.app" target="_blank">
-        My Whatsapp
-    </a>
-
-    <a href="https://bhadaniparivar.vercel.app" target="_blank">
-        My Family Tree
-    </a>
-
-    <a href="https://student-report-lake.vercel.app/" target="_blank">
-        Student Report
-    </a>
-
-    <a href="https://akashtutor.vercel.app/" target="_blank">
-        English Tutor
-    </a>
-
-    <a href="https://papers-nu.vercel.app/" target="_blank">
-        Paper
-    </a>
-
-    <a href="https://sjbhadanicoin.vercel.app/" target="_blank">
-        Coin and Note
-    </a>
-
-    <a href="https://new-earn-drab.vercel.app/" target="_blank">
-        Earn
-    </a>
-
-    <a href="https://spoken-english-meeting.vercel.app/index.html" target="_blank">
-        Meeting Office Aducate
-    </a>
-
-    <a href="https://zoom-meeting-app-aup6.onrender.com/" target="_blank">
-        Mix Meeting
-    </a>
-
-    <a href="https://akashbhadani02.github.io/Aducate_English" target="_blank">
-        Aducate Website
-    </a>
-
-    <a href="https://akashbhadani02.github.io/attendance/" target="_blank">
-        Old Student Maruti
-    </a>
-
-    <a href="https://akinator-theta.vercel.app/" target="_blank">
-        Akinator
-    </a>
-
-    <button class="file-btn" onclick="openFileModal()">📁 File Sharing</button>
-
-</div>
-
-</div>
+<div id="mainContent"><div class="dashboard">
+  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button></div></div>
+  <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Single click to open</span></div><div class="link-grid"><a class="link-card" href="https://akashbhadani02.github.io/Akash-bhadani/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">👤</span><span class="link-label">My CV</span></a><a class="link-card" href="https://www.aducate.online" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎓</span><span class="link-label">Aducate App</span></a><a class="link-card" href="https://tectrum.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💻</span><span class="link-label">Tectrum</span></a><a class="link-card" href="https://akashhome.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🏠</span><span class="link-label">IOT</span></a><a class="link-card" href="https://akashstudent.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💰</span><span class="link-label">Fees</span></a><a class="link-card" href="https://mywhat.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💬</span><span class="link-label">My Whatsapp</span></a><a class="link-card" href="https://bhadaniparivar.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌳</span><span class="link-label">My Family Tree</span></a><a class="link-card" href="https://student-report-lake.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📊</span><span class="link-label">Student Report</span></a><a class="link-card" href="https://akashtutor.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🗣️</span><span class="link-label">English Tutor</span></a><a class="link-card" href="https://papers-nu.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📚</span><span class="link-label">Paper</span></a><a class="link-card" href="https://sjbhadanicoin.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🪙</span><span class="link-label">Coin and Note</span></a><a class="link-card" href="https://new-earn-drab.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💵</span><span class="link-label">Earn</span></a><a class="link-card" href="https://spoken-english-meeting.vercel.app/index.html" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎥</span><span class="link-label">Meeting Office Aducate</span></a><a class="link-card" href="https://zoom-meeting-app-aup6.onrender.com/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📹</span><span class="link-label">Mix Meeting</span></a><a class="link-card" href="https://akashbhadani02.github.io/Aducate_English" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌐</span><span class="link-label">Aducate Website</span></a><a class="link-card" href="https://akashbhadani02.github.io/attendance/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📝</span><span class="link-label">Old Student Maruti</span></a><a class="link-card" href="https://akinator-theta.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎮</span><span class="link-label">Akinator</span></a></div></div></div></div>
 
 <!-- ================= FILE SHARING MODAL ================= -->
 <div id="fileModal" onclick="if(event.target===this) closeFileModal()" aria-hidden="true">
@@ -318,7 +205,7 @@ body {
 
     <div class="drive-toolbar">
       <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
-      <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">⌂ Home</button>
+      <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">🏠 Home</button>
       <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
       <label class="drive-btn upload-label">📤 Upload Files
         <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()">
@@ -754,9 +641,15 @@ setInterval(function() {
 }, 1000);
 
 
+/* Leaving any dashboard link clears the page session so returning asks for the password again. */
+function leaveProtectedPage(){
+  sessionStorage.removeItem("fileShareToken");
+  sessionStorage.removeItem("linkPageUnlocked");
+}
+
 /* ================= SESSION ================= */
 
-/* Same browser tab/session ma password fari na mange */
+/* Keep password only while the protected dashboard session is active. External links clear it. */
 if (sessionStorage.getItem("linkPageUnlocked") === "true" && sessionStorage.getItem("fileShareToken")) {
 
     document.getElementById("passwordScreen").style.display = "none";
