@@ -61,7 +61,7 @@ app.post('/api/files/chunk',auth,chunkUpload.single('chunk'),async(q,s)=>{
 
     await chunks.updateOne(
       {uploadId,index},
-      {$set:{uploadId,index,total,name,mime,size,folderId:fid,data:q.file.buffer,createdAt:new Date()}},
+      {$set:{uploadId,index,total,name,mime,size,folderId:fid,data:Buffer.from(q.file.buffer),createdAt:new Date()}},
       {upsert:true}
     );
 
@@ -74,7 +74,7 @@ app.post('/api/files/chunk',auth,chunkUpload.single('chunk'),async(q,s)=>{
       contentType:mime,
       metadata:{uploadedBy:'direct-links',source:'mongodb-gridfs',folderId:fid}
     });
-    for(const d of docs)st.write(d.data);
+    for(const d of docs){ const chunkData=Buffer.isBuffer(d.data)?d.data:(d.data?.buffer?Buffer.from(d.data.buffer):Buffer.from(d.data)); st.write(chunkData); }
     await new Promise((resolve,reject)=>{
       st.on('finish',resolve); st.on('error',reject); st.end();
     });
