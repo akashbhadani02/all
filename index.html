@@ -409,7 +409,22 @@ async function downloadFile(id){
  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 async function deleteFile(id){if(!confirm("Delete this file?"))return;const r=await fetch("/api/files/"+id,{method:"DELETE",headers:folderHeaders()});if(r.ok)loadDrive();else alert("Delete failed");}
-async function deleteFolder(id){if(!confirm("Delete this empty folder?"))return;const r=await fetch("/api/folders/"+id,{method:"DELETE",headers:folderHeaders()});const d=await r.json();if(r.ok)loadDrive();else alert("❌ "+(d.error||"Delete failed"));}
+async function deleteFolder(id){
+ if(!confirm("Delete this folder?\n\nIf it is password protected, you will be asked for its password."))return;
+ let headers=authHeaders();
+ let r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
+ if(r.status===403){
+  const p=prompt("🔐 Enter folder password to delete this locked folder:");
+  if(p===null)return;
+  const ur=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:p})});
+  if(!ur.ok){alert("❌ Wrong folder password");return;}
+  const ud=await ur.json();
+  headers={...authHeaders(),"X-Folder-Token":ud.token};
+  r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
+ }
+ const d=await r.json().catch(()=>({}));
+ if(r.ok)loadDrive();else alert("❌ "+(d.error||"Delete failed"));
+}
 /* ENTER KEY */
 
 document.getElementById("passwordInput").addEventListener("keydown", function(e) {
