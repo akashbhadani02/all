@@ -444,8 +444,12 @@ async function uploadSelectedFiles(){
 async function uploadSelectedFolder(){
  const input=document.getElementById('folderInput');
  const files=Array.from(input.files||[]);
- if(!files.length)return;
- await uploadFileBatch(files, true);
+ if(!files.length){ alert('❌ Folder ma koi file/data malyu nathi.'); return; }
+ // webkitRelativePath is the important part: it contains ROOT/subfolder/file.ext.
+ // Upload every selected file while rebuilding that exact folder tree on the server.
+ const supported=files.filter(f=>f && typeof f.size==='number' && f.webkitRelativePath);
+ if(!supported.length){ alert('❌ Browser e folder data read nathi karyu. Chrome/Edge ma fari try karo.'); return; }
+ await uploadFileBatch(supported, true);
  input.value='';
 }
 
@@ -517,17 +521,24 @@ async function getOrCreateFolder(name,parentId,parentToken){
 
 async function ensureRelativeFolder(relativePath){
  const parts=relativePath.split('/').filter(Boolean);
- if(!parts.length)return window.currentFolder||null;
+ if(!parts.length)return {id:window.currentFolder||null,token:window.currentFolderToken||null};
  let parent=window.currentFolder||null;
  let token=window.currentFolderToken||null;
- let accumulated='';
  for(const part of parts){
-   accumulated += (accumulated?'/':'')+part;
-   parent=await getOrCreateFolder(part,parent,token);
-   // New folders have no password, so the same parent token is not needed for them.
-   token=null;
+   const id=await getOrCreateFolder(part,parent,token);
+   parent=id;
+   // If this folder already existed and is protected, getOrCreateFolder may return its id.
+   // Unlock it so the following file upload can actually write into it.
+   let nextToken=null;
+   try{
+     const rr=await fetch('/api/folders/'+encodeURIComponent(id)+'/unlock',{
+       method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({password:''})
+     });
+     if(rr.ok){const dd=await rr.json();nextToken=dd.token||null;}
+   }catch(e){}
+   token=nextToken;
  }
- return parent;
+ return {id:parent,token};
 }
 
 function uploadOneChunked(file,folderId,onProgress){
@@ -552,7 +563,11 @@ function uploadOneChunked(file,folderId,onProgress){
 
      const xhr=new XMLHttpRequest();
      xhr.open('POST','/api/files/chunk');
-     const hh=folderId && window.currentFolder===folderId ? folderHeaders() : authHeaders();
+     const hh=authHeaders();
+     if(folderId){
+       const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
+       if(folderToken)hh['X-Folder-Token']=folderToken;
+     }
      Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
      xhr.upload.onprogress=e=>{
        if(e.lengthComputable && onProgress)
@@ -593,7 +608,11 @@ async function uploadFileBatch(files,isFolder){
        const rel=String(file.webkitRelativePath||'').replace(/\\/g,'/');
        const parts=rel.split('/').filter(Boolean);
        parts.pop(); // filename
-       if(parts.length)targetFolder=await ensureRelativeFolder(parts.join('/'));
+       if(parts.length){
+         const target=await ensureRelativeFolder(parts.join('/'));
+         targetFolder=target.id;
+         if(target.token) file.__folderToken=target.token;
+       }
      }
 
      setBatchProgress(done,cleanFiles.length,file.name,0);

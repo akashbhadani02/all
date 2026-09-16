@@ -1,40 +1,10 @@
-# Direct Links + MongoDB File Sharing
+# Direct Links
 
-This project keeps uploaded file bytes and file metadata in MongoDB GridFS. No local `uploads/` folder is used.
+## Upload Folder
+Use **📂 Upload Folder** to select a complete folder. Every file inside the selected folder, including files in nested subfolders, is uploaded automatically and the same folder/subfolder structure is recreated in the app.
 
-## Environment variables
+The browser supplies each file's `webkitRelativePath` (for example `Photos/2026/IMG001.jpg`); the uploader uses that path to create the required folders before uploading the file.
 
-```env
-MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@cluster0.example.mongodb.net/?appName=Cluster0
-MONGODB_DB=direct_links
-PAGE_PASSWORD=deoxy
-AUTH_SECRET=replace-with-a-long-random-secret
-```
+Large files are sent in 3 MB chunks, so the application does not impose a total video/file size limit. Actual hosting/storage limits can still apply.
 
-The File Sharing feature uses the `uploads.files` and `uploads.chunks` GridFS collections. It can reuse an existing MongoDB cluster/database; it does not overwrite unrelated collections.
-
-## Local
-
-```bash
-npm install
-npm start
-```
-
-## Vercel
-
-Add the environment variables in the Vercel project settings and deploy.
-
-
-## Vercel deployment
-Keep the files at the repository root. Required Vercel Environment Variables:
-- MONGODB_URI
-- MONGODB_DB=direct_links
-- AUTH_SECRET
-
-`deoxy` is accepted as the page password by the server. If `PAGE_PASSWORD` is set in Vercel, that configured password is also accepted.
-
-
-## Folder upload
-The File Sharing UI now includes **Upload Folder**. On supported browsers, selecting a folder uploads all files in one operation and automatically creates the same subfolder structure inside the currently open folder. Multiple individual files can also be selected with **Upload Files**.
-
-Uploads continue to use the existing 3 MB chunked endpoint, so large videos/files do not have an application-level size limit. Empty folders are not created because browsers generally do not include empty directories in folder selections.
+For folder selection, use a current Chrome or Edge browser.
