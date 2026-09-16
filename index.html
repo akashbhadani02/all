@@ -146,7 +146,27 @@ body {
 .folder-box{width:100%;max-width:390px;background:#fff;color:#172033;border-radius:17px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
 .folder-box h3{margin:0 0 16px}.folder-box input{width:100%;padding:12px;margin:6px 0;border:1px solid #d0d5dd;border-radius:9px;font-size:15px;outline:none}.folder-box input:focus{border-color:#6366f1}
 .folder-error{min-height:20px;color:#dc2626;font-size:13px;margin:5px 0}.folder-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.folder-actions button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer}.create-folder{background:#4f46e5;color:#fff}
-@media(max-width:520px){.drive-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:9px}.drive-item{min-height:115px;padding:11px}.drive-icon{font-size:35px}.drive-toolbar{padding:10px}.drive-title{font-size:20px}}
+@media(max-width:700px){
+  #fileModal{padding:0;align-items:stretch;justify-content:stretch}
+  .drive-panel{width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;display:flex;flex-direction:column}
+  .drive-panel .file-head{padding:14px 14px 10px;flex:0 0 auto}
+  .drive-title{font-size:20px}.drive-path{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78vw}
+  .drive-toolbar{padding:9px 10px;gap:7px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;flex:0 0 auto}
+  .drive-toolbar::-webkit-scrollbar{display:none}
+  .drive-btn,.upload-label{white-space:nowrap;min-height:40px;padding:9px 11px}
+  .drive-toolbar .refresh-btn{min-width:42px}
+  #driveStatus{flex:0 0 auto;padding:7px 10px}
+  .drive-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:10px;max-height:none;flex:1;overflow:auto;align-content:start}
+  .drive-item{min-width:0;min-height:178px;padding:9px;border-radius:12px;overflow:hidden}
+  .drive-file-main{display:block}.drive-file-main>div:last-child{margin-top:7px}
+  .drive-icon{font-size:38px}.drive-name{font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .drive-meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .image-thumb,.video-thumb{width:100%;height:105px;border-radius:9px}
+  .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:7px;width:100%}
+  .item-actions button{min-width:0;padding:7px 3px;font-size:11px}
+  .folder-dialog{padding:12px}.folder-box{max-width:100%;border-radius:15px}
+}
+@media(max-width:380px){.drive-grid{grid-template-columns:1fr}.drive-item{min-height:200px}.image-thumb,.video-thumb{height:135px}}
 </style>
 
 <style>
