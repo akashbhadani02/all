@@ -281,6 +281,24 @@ body {
 
 </div>
 
+<!-- ================= FILE SHARING MODAL ================= -->
+<div id="fileModal" onclick="if(event.target===this) closeFileModal()" aria-hidden="true">
+  <div class="file-panel" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+    <div class="file-head">
+      <h2 id="fileModalTitle">📁 File Sharing</h2>
+      <button class="close-file" type="button" onclick="closeFileModal()" aria-label="Close">×</button>
+    </div>
+    <div class="upload-area">
+      <div style="margin-bottom:10px;color:#d1d5db">Upload from this PC / mobile</div>
+      <input type="file" id="fileInput">
+      <button class="upload-action" id="uploadBtn" type="button" onclick="uploadFile()">📤 Upload File</button>
+      <div id="uploadStatus" class="file-status"></div>
+    </div>
+    <div id="fileList" class="file-list">
+      <div class="file-status">Loading files...</div>
+    </div>
+  </div>
+</div>
 
 <script>
 
@@ -306,10 +324,19 @@ async function checkPassword() {
 }
 
 async function openFileModal(){
-  document.getElementById("fileModal").style.display="flex";
+  const modal = document.getElementById("fileModal");
+  modal.style.display="flex";
+  modal.setAttribute("aria-hidden","false");
   await loadFiles();
 }
-function closeFileModal(){ document.getElementById("fileModal").style.display="none"; }
+function closeFileModal(){
+  const modal = document.getElementById("fileModal");
+  modal.style.display="none";
+  modal.setAttribute("aria-hidden","true");
+}
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape") closeFileModal();
+});
 function fmtSize(n){ if(n<1024) return n+" B"; if(n<1048576) return (n/1024).toFixed(1)+" KB"; return (n/1048576).toFixed(1)+" MB"; }
 function authHeaders(){ return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")}; }
 async function loadFiles(){
@@ -446,8 +473,5 @@ if (sessionStorage.getItem("linkPageUnlocked") === "true" && sessionStorage.getI
 }
 
 </script>
-
-
-<div id="fileModal" onclick="if(event.target===this) closeFileModal()"><div class="file-panel"><div class="file-head"><h2>📁 File Sharing</h2><button class="close-file" onclick="closeFileModal()">×</button></div><div class="upload-area"><div style="margin-bottom:10px;color:#d1d5db">Upload from this PC / mobile</div><input type="file" id="fileInput"><button class="upload-action" id="uploadBtn" onclick="uploadFile()">📤 Upload File</button><div id="uploadStatus" class="file-status"></div></div><div id="fileList" class="file-list"><div class="file-status">Loading files...</div></div></div></div>
 </body>
 </html>
