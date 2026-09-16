@@ -342,7 +342,18 @@ function authHeaders(){ return {Authorization:"Bearer "+sessionStorage.getItem("
 async function loadFiles(){
   const list=document.getElementById("fileList");
   try{ const r=await fetch("/api/files",{headers:authHeaders()}); if(!r.ok) throw 0; const files=await r.json();
-    list.innerHTML=files.length?files.map(f=>`<div class="file-row"><div class="file-info"><div class="file-name">📄 ${escapeHtml(f.name)}</div><div class="file-meta">${fmtSize(f.size)} • ${new Date(f.date).toLocaleString()}</div></div><div class="file-actions"><button class="download-btn" onclick="downloadFile('${f.id}')">📥 Download</button><button class="delete-btn" onclick="deleteFile('${f.id}')">🗑️ Delete</button></div></div>`).join(""):"<div class="file-status">No files uploaded yet.</div>";
+    list.innerHTML = files.length ? files.map(function(f) {
+      return '<div class="file-row">' +
+        '<div class="file-info">' +
+          '<div class="file-name">📄 ' + escapeHtml(f.name) + '</div>' +
+          '<div class="file-meta">' + fmtSize(f.size) + ' • ' + new Date(f.date).toLocaleString() + '</div>' +
+        '</div>' +
+        '<div class="file-actions">' +
+          '<button class="download-btn" onclick="downloadFile(&quot;' + escapeHtml(f.id) + '&quot;)">📥 Download</button>' +
+          '<button class="delete-btn" onclick="deleteFile(&quot;' + escapeHtml(f.id) + '&quot;)">🗑️ Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') : '<div class="file-status">No files uploaded yet.</div>';
   }catch(e){list.innerHTML='<div class="file-status">Could not load files.</div>';}
 }
 function escapeHtml(x){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
