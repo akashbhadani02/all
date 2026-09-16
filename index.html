@@ -318,10 +318,13 @@ body {
     <div class="drive-toolbar">
       <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
       <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
-      <label class="drive-btn upload-label">📤 Upload
-        <input type="file" id="fileInput" accept="*/*" hidden onchange="uploadFile()">
+      <label class="drive-btn upload-label">📤 Upload Files
+        <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()">
       </label>
-      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Please wait while the file is uploading. There is no app-level video size limit; large videos are uploaded in chunks.</div></div>
+      <label class="drive-btn upload-label">📂 Upload Folder
+        <input type="file" id="folderInput" webkitdirectory directory multiple hidden onchange="uploadSelectedFolder()">
+      </label>
+      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Large files and videos are uploaded in 3 MB chunks. Use “Upload Folder” to upload an entire folder at once while preserving its subfolders. There is no app-level video size limit.</div></div>
       <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
     </div>
 
@@ -431,46 +434,192 @@ async function createFolder(){
  }catch(e){er.textContent="❌ "+e.message;}
 }
 function showUploadProgress(show,file){const w=document.getElementById('uploadProgress');if(!w)return;w.style.display=show?'block':'none';if(file){document.getElementById('uploadFileName').textContent=file.name;document.getElementById('uploadPct').textContent='0%';document.getElementById('uploadFill').style.width='0%';}}
-function uploadFile(){
- const input=document.getElementById('fileInput'),file=input.files[0];if(!file)return;
- showUploadProgress(true,file);
- const CHUNK=3*1024*1024,total=Math.ceil(file.size/CHUNK),uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
- let index=0,uploaded=0;
- const send=()=>{
-   const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
-   const fd=new FormData();
-   fd.append('chunk',blob,file.name);
-   fd.append('uploadId',uploadId);fd.append('index',String(index));fd.append('total',String(total));
-   fd.append('name',file.name);fd.append('mime',file.type||'application/octet-stream');fd.append('size',String(file.size));
-   if(window.currentFolder)fd.append('folderId',window.currentFolder);
-   const xhr=new XMLHttpRequest();xhr.open('POST','/api/files/chunk');
-   const hh=folderHeaders();Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
-   xhr.upload.onprogress=e=>{
-     if(e.lengthComputable){
-       const pct=Math.min(99,Math.round(((uploaded+e.loaded)/file.size)*100));
-       document.getElementById('uploadFill').style.width=pct+'%';
-       document.getElementById('uploadPct').textContent=pct+'%';
-     }
-   };
-   xhr.onload=()=>{
-     let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
-     if(xhr.status>=200&&xhr.status<300){
-       uploaded+=blob.size;index++;
-       if(index<total){send();}
-       else{
-         document.getElementById('uploadFill').style.width='100%';
-         document.getElementById('uploadPct').textContent='100% — Complete';
-         loadDrive();setTimeout(()=>showUploadProgress(false),900);input.value='';
-       }
-     }else{
-       alert('❌ '+(d.error||'Upload failed'));showUploadProgress(false);input.value='';
-     }
-   };
-   xhr.onerror=()=>{alert('❌ Upload failed. Please try again.');showUploadProgress(false);input.value='';};
-   xhr.send(fd);
- };
- send();
+async function uploadSelectedFiles(){
+ const input=document.getElementById('fileInput');
+ const files=Array.from(input.files||[]);
+ if(!files.length)return;
+ await uploadFileBatch(files, false);
+ input.value='';
 }
+async function uploadSelectedFolder(){
+ const input=document.getElementById('folderInput');
+ const files=Array.from(input.files||[]);
+ if(!files.length)return;
+ await uploadFileBatch(files, true);
+ input.value='';
+}
+
+function showUploadProgress(show,file){
+ const w=document.getElementById('uploadProgress');if(!w)return;
+ w.style.display=show?'block':'none';
+ if(file){
+   document.getElementById('uploadFileName').textContent=file.name;
+   document.getElementById('uploadPct').textContent='0%';
+   document.getElementById('uploadFill').style.width='0%';
+ }
+}
+
+function setBatchProgress(done,total,currentFile,currentPct){
+ const w=document.getElementById('uploadProgress');
+ if(!w)return;
+ w.style.display='block';
+ const pct=total ? Math.min(100,Math.round(((done+currentPct/100)/total)*100)) : 0;
+ document.getElementById('uploadFileName').textContent =
+   total>1 ? `Uploading ${done+1} of ${total}: ${currentFile}` : currentFile;
+ document.getElementById('uploadPct').textContent=pct+'%';
+ document.getElementById('uploadFill').style.width=pct+'%';
+}
+
+async function getOrCreateFolder(name,parentId,parentToken){
+ const key=(parentId||'ROOT')+'|'+name;
+ window.batchFolderCache=window.batchFolderCache||new Map();
+ if(window.batchFolderCache.has(key))return window.batchFolderCache.get(key);
+
+ const headers={...authHeaders(),'Content-Type':'application/json'};
+ if(parentToken)headers['X-Folder-Token']=parentToken;
+
+ // Reuse an existing folder when possible.
+ const qr=await fetch('/api/folders'+(parentId?'?parentId='+encodeURIComponent(parentId):''),{
+   headers: parentToken ? {'Authorization':headers.Authorization,'X-Folder-Token':parentToken} : {'Authorization':headers.Authorization}
+ });
+ if(qr.ok){
+   const existing=await qr.json();
+   const found=existing.find(x=>x.name===name);
+   if(found){
+     if(found.protected) throw new Error(`Folder "${name}" already exists and is password protected. Open/unlock it first.`);
+     window.batchFolderCache.set(key,found.id);
+     return found.id;
+   }
+ }
+ const r=await fetch('/api/folders',{
+   method:'POST',
+   headers,
+   body:JSON.stringify({name,parentId:parentId||null,password:''})
+ });
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok){
+   // Another upload/tab may have created it between the GET and POST; try once more.
+   if(r.status===409){
+     const rr=await fetch('/api/folders'+(parentId?'?parentId='+encodeURIComponent(parentId):''),{
+       headers: parentToken ? {'Authorization':headers.Authorization,'X-Folder-Token':parentToken} : {'Authorization':headers.Authorization}
+     });
+     if(rr.ok){
+       const list=await rr.json(), found=list.find(x=>x.name===name);
+       if(found){window.batchFolderCache.set(key,found.id);return found.id;}
+     }
+   }
+   throw new Error(d.error||`Could not create folder "${name}"`);
+ }
+ const id=d.folder.id;
+ window.batchFolderCache.set(key,id);
+ return id;
+}
+
+async function ensureRelativeFolder(relativePath){
+ const parts=relativePath.split('/').filter(Boolean);
+ if(!parts.length)return window.currentFolder||null;
+ let parent=window.currentFolder||null;
+ let token=window.currentFolderToken||null;
+ let accumulated='';
+ for(const part of parts){
+   accumulated += (accumulated?'/':'')+part;
+   parent=await getOrCreateFolder(part,parent,token);
+   // New folders have no password, so the same parent token is not needed for them.
+   token=null;
+ }
+ return parent;
+}
+
+function uploadOneChunked(file,folderId,onProgress){
+ return new Promise((resolve,reject)=>{
+   const CHUNK=3*1024*1024;
+   const total=Math.max(1,Math.ceil(file.size/CHUNK));
+   const uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
+   let index=0,uploaded=0,finished=false;
+
+   const fail=(msg)=>{if(finished)return;finished=true;reject(new Error(msg));};
+   const send=()=>{
+     const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
+     const fd=new FormData();
+     fd.append('chunk',blob,file.name);
+     fd.append('uploadId',uploadId);
+     fd.append('index',String(index));
+     fd.append('total',String(total));
+     fd.append('name',file.name);
+     fd.append('mime',file.type||'application/octet-stream');
+     fd.append('size',String(file.size));
+     if(folderId)fd.append('folderId',folderId);
+
+     const xhr=new XMLHttpRequest();
+     xhr.open('POST','/api/files/chunk');
+     const hh=folderId && window.currentFolder===folderId ? folderHeaders() : authHeaders();
+     Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
+     xhr.upload.onprogress=e=>{
+       if(e.lengthComputable && onProgress)
+         onProgress(Math.min(99,Math.round(((uploaded+e.loaded)/Math.max(1,file.size))*100)));
+     };
+     xhr.onload=()=>{
+       let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
+       if(xhr.status>=200&&xhr.status<300){
+         uploaded+=blob.size;index++;
+         if(index<total)send();
+         else{finished=true;if(onProgress)onProgress(100);resolve(d);}
+       }else fail(d.error||'Upload failed');
+     };
+     xhr.onerror=()=>fail('Upload failed. Please try again.');
+     xhr.ontimeout=()=>fail('Upload timed out. Please try again.');
+     xhr.send(fd);
+   };
+   send();
+ });
+}
+
+async function uploadFileBatch(files,isFolder){
+ const cleanFiles=files.filter(f=>f && typeof f.size==='number');
+ if(!cleanFiles.length)return;
+
+ const w=document.getElementById('uploadProgress');
+ const title=isFolder ? '📂 Uploading folder' : '📤 Uploading files';
+ document.getElementById('uploadFileName').textContent=title;
+ w.style.display='block';
+ window.batchFolderCache=new Map();
+
+ let done=0;
+ try{
+   for(const file of cleanFiles){
+     let targetFolder=window.currentFolder||null;
+     if(isFolder){
+       // Preserve the selected folder's complete subfolder structure.
+       const rel=String(file.webkitRelativePath||'').replace(/\\/g,'/');
+       const parts=rel.split('/').filter(Boolean);
+       parts.pop(); // filename
+       if(parts.length)targetFolder=await ensureRelativeFolder(parts.join('/'));
+     }
+
+     setBatchProgress(done,cleanFiles.length,file.name,0);
+     await uploadOneChunked(file,targetFolder,pct=>{
+       setBatchProgress(done,cleanFiles.length,file.name,pct);
+     });
+     done++;
+     setBatchProgress(done,cleanFiles.length,file.name,100);
+   }
+   document.getElementById('uploadPct').textContent='100% — Complete';
+   document.getElementById('uploadFill').style.width='100%';
+   await loadDrive();
+   setTimeout(()=>showUploadProgress(false),1200);
+ }catch(e){
+   alert('❌ '+e.message);
+   setUploadErrorState();
+ }
+}
+
+function setUploadErrorState(){
+ const pct=document.getElementById('uploadPct'),fill=document.getElementById('uploadFill');
+ if(pct)pct.textContent='Upload stopped';
+ if(fill)fill.style.width='0%';
+ setTimeout(()=>showUploadProgress(false),1800);
+}
+
 function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
 function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}
 async function downloadFile(id){
