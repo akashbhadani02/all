@@ -317,6 +317,7 @@ body {
 
     <div class="drive-toolbar">
       <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
+      <button class="drive-btn" id="homeBtn" onclick="goHome()">⌂ Home</button>
       <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
       <label class="drive-btn upload-label">📤 Upload Files
         <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()">
@@ -376,6 +377,7 @@ async function loadDrive(){
   const folders=await fr.json(),files=await ff.json();
   document.getElementById("drivePath").textContent=window.currentFolderName||"This PC";
   document.getElementById("backBtn").disabled=window.driveStack.length===0;
+  document.getElementById("homeBtn").disabled=!window.currentFolder;
   let out=folders.map(f=>`<div class="drive-item" ondblclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')" onclick="selectDriveItem(this)">
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
@@ -422,6 +424,7 @@ async function openFolder(id,name){
 }
 function enterFolder(id,name,token){window.driveStack.push({id:window.currentFolder,name:window.currentFolderName,token:window.currentFolderToken});window.currentFolder=id;window.currentFolderName=name;window.currentFolderToken=token;loadDrive();}
 function goBack(){if(!window.driveStack.length)return;const x=window.driveStack.pop();window.currentFolder=x.id||null;window.currentFolderName=x.name||null;window.currentFolderToken=x.token||null;loadDrive();}
+function goHome(){window.driveStack=[];window.currentFolder=null;window.currentFolderName=null;window.currentFolderToken=null;loadDrive();}
 function showNewFolder(){document.getElementById("folderDialog").style.display="flex";document.getElementById("folderDialog").setAttribute("aria-hidden","false");document.getElementById("folderName").value="";document.getElementById("folderPassword").value="";document.getElementById("folderError").textContent="";setTimeout(()=>document.getElementById("folderName").focus(),50);}
 function closeFolderDialog(){const d=document.getElementById("folderDialog");d.style.display="none";d.setAttribute("aria-hidden","true");}
 async function createFolder(){
