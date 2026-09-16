@@ -163,7 +163,7 @@ body {
 
 /* FILE SHARING */
 .file-btn{border:0;cursor:pointer;width:100%;display:block;text-align:center;color:#fff;background:#4f46e5;padding:15px;margin:10px 0;border-radius:12px;font-size:17px;font-weight:bold;transition:.2s}.file-btn:hover{background:#6366f1;transform:translateY(-2px)}
-#fileModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100000;align-items:center;justify-content:center;padding:16px}.file-panel{width:100%;max-width:720px;max-height:90vh;overflow:auto;background:#1f2937;border-radius:20px;padding:22px;box-shadow:0 20px 80px rgba(0,0,0,.7);color:#fff}.file-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.file-head h2{margin:0}.close-file{border:0;background:#374151;color:#fff;width:42px;height:42px;border-radius:12px;font-size:22px;cursor:pointer}.upload-area{border:2px dashed #4f46e5;border-radius:16px;padding:22px;text-align:center;margin:18px 0;background:#111827}.upload-area input{width:100%;color:#ddd}.upload-action{margin-top:12px;border:0;background:#4f46e5;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;cursor:pointer}.upload-action:disabled{opacity:.5}.file-list{display:flex;flex-direction:column;gap:10px}.file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#111827;padding:12px;border-radius:12px}.file-info{min-width:0}.file-name{font-weight:bold;word-break:break-word}.file-meta{font-size:12px;color:#9ca3af;margin-top:4px}.file-actions{display:flex;gap:7px;flex-shrink:0}.file-actions button{border:0;border-radius:9px;padding:9px 11px;color:#fff;cursor:pointer}.download-btn{background:#059669}.delete-btn{background:#dc2626}.file-status{text-align:center;color:#9ca3af;padding:14px}@media(max-width:520px){.file-panel{padding:15px}.file-row{align-items:flex-start;flex-direction:column}.file-actions{width:100%}.file-actions button{flex:1}}
+#fileModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100000;align-items:center;justify-content:center;padding:16px}.file-panel{width:100%;max-width:720px;max-height:90vh;overflow:auto;background:#1f2937;border-radius:20px;padding:22px;box-shadow:0 20px 80px rgba(0,0,0,.7);color:#fff}.file-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.file-head h2{margin:0}.close-file{border:0;background:#374151;color:#fff;width:42px;height:42px;border-radius:12px;font-size:22px;cursor:pointer}.upload-area{border:2px dashed #4f46e5;border-radius:16px;padding:22px;text-align:center;margin:18px 0;background:#111827}.upload-area input{width:100%;color:#ddd}.upload-action{margin-top:12px;border:0;background:#4f46e5;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;cursor:pointer}.upload-action:disabled{opacity:.5}.file-list{display:flex;flex-direction:column;gap:10px}.file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#111827;padding:12px;border-radius:12px}.video-thumb{width:86px;height:62px;border-radius:10px;overflow:hidden;background:#0b1220;position:relative;display:flex;align-items:center;justify-content:center;flex:none}.video-thumb img{width:100%;height:100%;object-fit:cover;display:block}.video-thumb .thumb-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}.drive-file-main{display:flex;align-items:center;gap:12px;min-width:0}.drive-file-main>div:last-child{min-width:0}.file-info{min-width:0}.file-name{font-weight:bold;word-break:break-word}.file-meta{font-size:12px;color:#9ca3af;margin-top:4px}.file-actions{display:flex;gap:7px;flex-shrink:0}.file-actions button{border:0;border-radius:9px;padding:9px 11px;color:#fff;cursor:pointer}.download-btn{background:#059669}.delete-btn{background:#dc2626}.file-status{text-align:center;color:#9ca3af;padding:14px}@media(max-width:520px){.file-panel{padding:15px}.file-row{align-items:flex-start;flex-direction:column}.file-actions{width:100%}.file-actions button{flex:1}}
 
 /* Windows-style file sharing */
 .drive-panel{max-width:900px;background:#f5f7fb;color:#172033;padding:0;overflow:hidden}
@@ -321,7 +321,7 @@ body {
       <label class="drive-btn upload-label">📤 Upload
         <input type="file" id="fileInput" accept="*/*" hidden onchange="uploadFile()">
       </label>
-      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Please wait while the file is uploading...</div></div>
+      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Please wait while the file is uploading. There is no app-level video size limit; large videos are uploaded in chunks.</div></div>
       <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
     </div>
 
@@ -376,13 +376,38 @@ async function loadDrive(){
   let out=folders.map(f=>`<div class="drive-item" ondblclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')" onclick="selectDriveItem(this)">
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
-  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const icon=t.startsWith('image/')?'🖼️':t.startsWith('video/')?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';return `<div class="drive-item" onclick="selectDriveItem(this)">
-    <div><div class="drive-icon">${icon}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div>
-    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${f.id}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${f.id}')">🗑️</button></div></div>`}).join("");
-  list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";
+  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const thumb=isVideo?`<div class="video-thumb" data-video-id="${safeId}" aria-label="Video thumbnail"><span class="thumb-play">▶</span></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item" onclick="selectDriveItem(this)">
+    <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div></div>
+    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
+  list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";hydrateVideoThumbnails();
  }catch(e){status.textContent="❌ "+e.message;}
 }
 function selectDriveItem(el){document.querySelectorAll(".drive-item").forEach(x=>x.style.outline="");el.style.outline="2px solid #818cf8";}
+function hydrateVideoThumbnails(){
+ const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');
+ const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';
+ document.querySelectorAll('.video-thumb[data-video-id]').forEach(box=>{
+  if(box.dataset.loaded)return; box.dataset.loaded='1';
+  const id=box.dataset.videoId, video=document.createElement('video');
+  video.muted=true; video.preload='metadata'; video.playsInline=true;
+  video.src='/api/files/'+encodeURIComponent(id)+'/view?token='+token+ft;
+  const finish=()=>{
+    try{
+      const w=video.videoWidth||320,h=video.videoHeight||180,canvas=document.createElement('canvas');
+      canvas.width=Math.min(480,w); canvas.height=Math.max(1,Math.round(canvas.width*h/w));
+      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+      const img=new Image(); img.alt='Video thumbnail'; img.src=canvas.toDataURL('image/jpeg',.82); box.prepend(img);
+    }catch(e){}
+    video.remove();
+  };
+  video.addEventListener('loadeddata',()=>{try{video.currentTime=Math.min(1,Math.max(0,(video.duration||1)/4));}catch(e){finish();}});
+  video.addEventListener('seeked',finish,{once:true});
+  video.addEventListener('error',()=>video.remove(),{once:true});
+  setTimeout(()=>{if(document.body.contains(video))video.remove()},10000);
+  document.body.appendChild(video);
+ });
+}
+
 async function openFolder(id,name){
  const r=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:""})});
  if(r.ok){const d=await r.json();enterFolder(id,name,d.token);return;}
@@ -446,7 +471,7 @@ function uploadFile(){
  };
  send();
 }
-function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;el.setAttribute('controlsList','nodownload');el.setAttribute('disablePictureInPicture','');}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
+function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
 function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}
 async function downloadFile(id){
  const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}

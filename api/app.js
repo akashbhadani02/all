@@ -28,7 +28,10 @@ app.delete('/api/folders/:id', auth, async (q, s) => { try { const id = oid(q.pa
 app.get('/api/files', auth, async (q, s) => { try { const db = await mongo(), fid = q.query.folderId || null; if (fid) { const id = oid(fid); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const filter = fid ? { 'metadata.folderId': fid } : { $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }; const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate, type: f.contentType || 'application/octet-stream' }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 
 // Chunked uploads keep each request small enough for serverless platforms
-// (such as Vercel) while still allowing large MP4/MP3 and other files.
+// (such as Vercel) while allowing videos/files of any practical size.
+// There is intentionally no application-level TOTAL file-size limit; only the
+// per-request chunk is capped. Actual limits can still come from hosting,
+// MongoDB/storage quotas, browser/device constraints, or plan limits.
 const chunkUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 4 * 1024 * 1024, files: 1 }
@@ -44,7 +47,7 @@ app.post('/api/files/chunk', auth, chunkUpload.single('chunk'), async (q, s) => 
     const mime = String(q.body?.mime || 'application/octet-stream');
     const size = Number(q.body?.size || 0);
     const fid = q.body?.folderId || null;
-    if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || index >= total)
+    if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || index >= total || total > 100000000)
       return s.status(400).json({ error: 'Invalid upload information' });
 
     const db = await mongo();
