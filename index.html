@@ -407,12 +407,44 @@ async function createFolder(){
 }
 function showUploadProgress(show,file){const w=document.getElementById('uploadProgress');if(!w)return;w.style.display=show?'block':'none';if(file){document.getElementById('uploadFileName').textContent=file.name;document.getElementById('uploadPct').textContent='0%';document.getElementById('uploadFill').style.width='0%';}}
 function uploadFile(){
- const input=document.getElementById('fileInput');const file=input.files[0];if(!file)return;
- const fd=new FormData();fd.append('file',file);if(window.currentFolder)fd.append('folderId',window.currentFolder);showUploadProgress(true,file);
- const xhr=new XMLHttpRequest();xhr.open('POST','/api/files');const h=folderHeaders();Object.keys(h).forEach(k=>xhr.setRequestHeader(k,h[k]));
- xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);document.getElementById('uploadFill').style.width=pct+'%';document.getElementById('uploadPct').textContent=pct+'%';}};
- xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText||'{}');if(xhr.status>=200&&xhr.status<300){document.getElementById('uploadPct').textContent='100% — Complete';loadDrive();}else alert('❌ '+(d.error||'Upload failed'));}catch(e){alert('❌ Upload failed')}setTimeout(()=>showUploadProgress(false),900);input.value='';};
- xhr.onerror=()=>{alert('❌ Upload failed');showUploadProgress(false);input.value='';};xhr.send(fd);
+ const input=document.getElementById('fileInput'),file=input.files[0];if(!file)return;
+ showUploadProgress(true,file);
+ const CHUNK=3*1024*1024,total=Math.ceil(file.size/CHUNK),uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
+ let index=0,uploaded=0;
+ const send=()=>{
+   const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
+   const fd=new FormData();
+   fd.append('chunk',blob,file.name);
+   fd.append('uploadId',uploadId);fd.append('index',String(index));fd.append('total',String(total));
+   fd.append('name',file.name);fd.append('mime',file.type||'application/octet-stream');fd.append('size',String(file.size));
+   if(window.currentFolder)fd.append('folderId',window.currentFolder);
+   const xhr=new XMLHttpRequest();xhr.open('POST','/api/files/chunk');
+   const hh=folderHeaders();Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
+   xhr.upload.onprogress=e=>{
+     if(e.lengthComputable){
+       const pct=Math.min(99,Math.round(((uploaded+e.loaded)/file.size)*100));
+       document.getElementById('uploadFill').style.width=pct+'%';
+       document.getElementById('uploadPct').textContent=pct+'%';
+     }
+   };
+   xhr.onload=()=>{
+     let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
+     if(xhr.status>=200&&xhr.status<300){
+       uploaded+=blob.size;index++;
+       if(index<total){send();}
+       else{
+         document.getElementById('uploadFill').style.width='100%';
+         document.getElementById('uploadPct').textContent='100% — Complete';
+         loadDrive();setTimeout(()=>showUploadProgress(false),900);input.value='';
+       }
+     }else{
+       alert('❌ '+(d.error||'Upload failed'));showUploadProgress(false);input.value='';
+     }
+   };
+   xhr.onerror=()=>{alert('❌ Upload failed. Please try again.');showUploadProgress(false);input.value='';};
+   xhr.send(fd);
+ };
+ send();
 }
 function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
 function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}

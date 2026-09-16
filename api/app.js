@@ -26,6 +26,65 @@ app.delete('/api/folders/:id',auth,async(q,s)=>{try{const id=oid(q.params.id);if
 
 /* Files */
 app.get('/api/files',auth,async(q,s)=>{try{const db=await mongo(),fid=q.query.folderId||null;if(fid){const id=oid(fid);if(!id)return s.status(400).json({error:'Invalid folder id'});const f=await db.collection('folders').findOne({_id:id});if(!f)return s.status(404).json({error:'Folder not found'});if((f.password || f.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).json({error:'Folder is locked'});}const filter=fid?{'metadata.folderId':fid}:{$or:[{'metadata.folderId':null},{'metadata.folderId':{$exists:false}}]};const a=await db.collection('uploads.files').find(filter).sort({uploadDate:-1}).project({filename:1,length:1,uploadDate:1,contentType:1}).toArray();s.json(a.map(f=>({id:f._id.toString(),name:f.filename,size:f.length,date:f.uploadDate,type:f.contentType||'application/octet-stream'})));}catch(e){s.status(500).json({error:e.message});}});
+
+// Chunked uploads keep each request small enough for serverless platforms
+// (such as Vercel) while still allowing large MP4/MP3 and other files.
+const chunkUpload=multer({
+  storage:multer.memoryStorage(),
+  limits:{fileSize:4*1024*1024,files:1}
+});
+
+app.post('/api/files/chunk',auth,chunkUpload.single('chunk'),async(q,s)=>{
+  try{
+    if(!q.file)return s.status(400).json({error:'No chunk selected'});
+    const uploadId=String(q.body?.uploadId||'');
+    const index=Number(q.body?.index);
+    const total=Number(q.body?.total);
+    const name=String(q.body?.name||'file');
+    const mime=String(q.body?.mime||'application/octet-stream');
+    const size=Number(q.body?.size||0);
+    const fid=q.body?.folderId||null;
+    if(!uploadId||!Number.isInteger(index)||!Number.isInteger(total)||index<0||total<1||index>=total)
+      return s.status(400).json({error:'Invalid upload information'});
+
+    const db=await mongo();
+    if(fid){
+      const id=oid(fid),f=id&&await db.collection('folders').findOne({_id:id});
+      if(!f)return s.status(404).json({error:'Folder not found'});
+      if((f.password||f.passwordHash)&&!folderUnlocked(q,fid))
+        return s.status(403).json({error:'Folder is locked'});
+    }
+
+    const chunks=db.collection('upload_chunks');
+    await chunks.createIndex({uploadId:1,index:1},{unique:true});
+    await chunks.createIndex({createdAt:1},{expireAfterSeconds:24*60*60});
+
+    await chunks.updateOne(
+      {uploadId,index},
+      {$set:{uploadId,index,total,name,mime,size,folderId:fid,data:q.file.buffer,createdAt:new Date()}},
+      {upsert:true}
+    );
+
+    if(index!==total-1)return s.json({ok:true,index,complete:false});
+
+    const docs=await chunks.find({uploadId}).sort({index:1}).toArray();
+    if(docs.length!==total)return s.json({ok:true,complete:false,received:docs.length});
+
+    const st=new GridFSBucket(db,{bucketName:'uploads'}).openUploadStream(name,{
+      contentType:mime,
+      metadata:{uploadedBy:'direct-links',source:'mongodb-gridfs',folderId:fid}
+    });
+    for(const d of docs)st.write(d.data);
+    await new Promise((resolve,reject)=>{
+      st.on('finish',resolve); st.on('error',reject); st.end();
+    });
+    await chunks.deleteMany({uploadId});
+    s.json({ok:true,complete:true,size,name});
+  }catch(e){
+    s.status(500).json({error:e.message||'Upload failed'});
+  }
+});
+
 app.post('/api/files',auth,upload.single('file'),async(q,s)=>{try{if(!q.file)return s.status(400).json({error:'No file selected'});const fid=q.body?.folderId||null,db=await mongo();if(fid){const id=oid(fid),f=id&&await db.collection('folders').findOne({_id:id});if(!f)return s.status(404).json({error:'Folder not found'});if((f.password || f.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).json({error:'Folder is locked'});}const st=new GridFSBucket(db,{bucketName:'uploads'}).openUploadStream(q.file.originalname,{contentType:q.file.mimetype||'application/octet-stream',metadata:{uploadedBy:'direct-links',source:'mongodb-gridfs',folderId:fid}});await new Promise((resolve,reject)=>{const rs=fs.createReadStream(q.file.path);rs.on('error',reject);st.on('finish',resolve);st.on('error',reject);rs.pipe(st);});try{fs.unlinkSync(q.file.path);}catch{}s.json({ok:true,size:q.file.size,name:q.file.originalname});}catch(e){if(q.file?.path)try{fs.unlinkSync(q.file.path)}catch{}s.status(500).json({error:e.message});}});
 app.get('/api/files/:id/view',auth,async(q,s)=>{try{const db=await mongo(),id=oid(q.params.id),f=id&&await db.collection('uploads.files').findOne({_id:id});if(!f)return s.status(404).send('File not found');const fid=f.metadata?.folderId;if(fid){const fo=await db.collection('folders').findOne({_id:oid(fid)});if((fo?.password || fo?.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).send('Folder is locked');}s.setHeader('Content-Type',f.contentType||'application/octet-stream');s.setHeader('Content-Disposition','inline');s.setHeader('Accept-Ranges','bytes');new GridFSBucket(db,{bucketName:'uploads'}).openDownloadStream(id).pipe(s);}catch(e){s.status(400).send('Invalid file id');}});
 app.get('/api/files/:id/download',auth,async(q,s)=>{try{const db=await mongo(),id=oid(q.params.id),f=id&&await db.collection('uploads.files').findOne({_id:id});if(!f)return s.status(404).send('File not found');const fid=f.metadata?.folderId;if(fid){const fo=await db.collection('folders').findOne({_id:oid(fid)});if((fo?.password || fo?.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).send('Folder is locked');}s.setHeader('Content-Type',f.contentType||'application/octet-stream');s.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`);new GridFSBucket(db,{bucketName:'uploads'}).openDownloadStream(id).pipe(s);}catch(e){s.status(400).send('Invalid file id');}});
