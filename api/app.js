@@ -27,7 +27,11 @@ function auth(req, res, next) {
 }
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..')));
+const publicRoot = path.join(__dirname, '..');
+app.use(express.static(publicRoot));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicRoot, 'index.html'));
+});
 
 app.post('/api/login', (req, res) => {
   const password = String(req.body?.password || '');
