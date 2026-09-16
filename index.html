@@ -176,13 +176,17 @@ body {
 .drive-item{background:#fff;border:1px solid #e1e6ef;border-radius:13px;padding:14px;min-height:125px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.05)}
 .drive-item:hover{border-color:#818cf8;transform:translateY(-1px)}
 .drive-icon{font-size:43px}.drive-name{font-weight:700;word-break:break-word}.drive-meta{font-size:12px;color:#667085;margin-top:4px}
-.drive-item .item-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.item-actions button{border:0;border-radius:7px;padding:7px 9px;cursor:pointer;background:#eef2ff}.item-actions .view-btn{background:#e0e7ff}.item-actions .download-btn2{background:#dcfce7}.item-actions .danger-btn{background:#fee2e2}.upload-progress{display:none;margin-top:14px;text-align:left}.upload-progress-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}.upload-progress-fill{height:100%;width:0%;background:#4f46e5;transition:width .12s}.upload-progress-text{font-size:13px;color:#d1d5db;margin-top:7px;text-align:center}.upload-retry{font-size:12px;color:#fbbf24;margin-top:4px;text-align:center}
+.drive-item .item-actions{display:flex;gap:6px;margin-top:8px}.item-actions button{border:0;border-radius:7px;padding:6px 8px;cursor:pointer;background:#eef2ff}
 .drive-empty{grid-column:1/-1;text-align:center;padding:45px;color:#667085}
 .folder-dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100001;align-items:center;justify-content:center;padding:16px}
 .folder-box{width:100%;max-width:390px;background:#fff;color:#172033;border-radius:17px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
 .folder-box h3{margin:0 0 16px}.folder-box input{width:100%;padding:12px;margin:6px 0;border:1px solid #d0d5dd;border-radius:9px;font-size:15px;outline:none}.folder-box input:focus{border-color:#6366f1}
 .folder-error{min-height:20px;color:#dc2626;font-size:13px;margin:5px 0}.folder-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.folder-actions button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer}.create-folder{background:#4f46e5;color:#fff}
 @media(max-width:520px){.drive-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:9px}.drive-item{min-height:115px;padding:11px}.drive-icon{font-size:35px}.drive-toolbar{padding:10px}.drive-title{font-size:20px}}
+</style>
+
+<style>
+.view-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100010;align-items:center;justify-content:center;padding:16px}.view-panel{width:100%;max-width:1000px;max-height:92vh;background:#111827;border-radius:18px;padding:14px;color:#fff;display:flex;flex-direction:column;gap:10px}.view-head{display:flex;align-items:center;justify-content:space-between}.view-content{width:100%;max-height:78vh;object-fit:contain;border-radius:12px;background:#000}.view-close{border:0;background:#374151;color:#fff;border-radius:10px;padding:9px 13px;font-size:20px;cursor:pointer}.progress-wrap{display:none;margin:12px 0;background:#111827;border-radius:12px;padding:12px}.progress-top{display:flex;justify-content:space-between;font-size:13px;color:#d1d5db;margin-bottom:7px}.progress-bar{height:10px;background:#374151;border-radius:99px;overflow:hidden}.progress-fill{height:100%;width:0;background:#6366f1;transition:width .15s}.progress-text{font-size:12px;color:#9ca3af;margin-top:6px}.view-btn{background:#2563eb}.item-actions button{min-width:40px}
 </style>
 </head>
 
@@ -317,15 +321,11 @@ body {
       <label class="drive-btn upload-label">📤 Upload
         <input type="file" id="fileInput" hidden onchange="uploadFile()">
       </label>
+      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Please wait while the file is uploading...</div></div>
       <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
     </div>
 
     <div id="driveStatus" class="file-status"></div>
-    <div id="uploadProgress" class="upload-progress">
-      <div class="upload-progress-bar"><div id="uploadProgressFill" class="upload-progress-fill"></div></div>
-      <div id="uploadProgressText" class="upload-progress-text">0%</div>
-      <div id="uploadRetry" class="upload-retry"></div>
-    </div>
     <div id="driveList" class="drive-grid"></div>
   </div>
 </div>
@@ -342,6 +342,8 @@ body {
     </div>
   </div>
 </div>
+
+<div id="viewModal" class="view-modal" aria-hidden="true"><div class="view-panel"><div class="view-head"><strong id="viewTitle">Preview</strong><button class="view-close" onclick="closeView()">×</button></div><div id="viewBody"></div></div></div>
 <script>
 /* PAGE PASSWORD */
 async function checkPassword(){
@@ -352,7 +354,7 @@ async function checkPassword(){
 
 async function openFileModal(){const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();}
 function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeView();}});
 function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
 function folderHeaders(){const h=authHeaders();if(window.currentFolderToken)h["X-Folder-Token"]=window.currentFolderToken;return h;}
 function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(1)+" MB";}
@@ -371,58 +373,70 @@ async function loadDrive(){
   const folders=await fr.json(),files=await ff.json();
   document.getElementById("drivePath").textContent=window.currentFolderName||"This PC";
   document.getElementById("backBtn").disabled=window.driveStack.length===0;
-  let out=folders.map(f=>`<div class="drive-item" onclick="selectDriveItem(this)">
+  let out=folders.map(f=>`<div class="drive-item" ondblclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')" onclick="selectDriveItem(this)">
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
-    <div class="item-actions"><button title="Open" onclick="event.stopPropagation();openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')">📂 Open</button><button class="danger-btn" title="Delete" onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
-  out+=files.map(f=>`<div class="drive-item" onclick="selectDriveItem(this)">
-    <div><div class="drive-icon">${fileIcon(f.type,f.name)}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${fmtSize(f.size)} • ${escapeHtml(f.type||"file")}</div></div>
-    <div class="item-actions"><button class="view-btn" onclick="event.stopPropagation();viewFile('${f.id}')">👁️ View</button><button class="download-btn2" onclick="event.stopPropagation();downloadFile('${f.id}')">📥 Download</button><button class="danger-btn" onclick="event.stopPropagation();deleteFile('${f.id}')">🗑️</button></div></div>`).join("");
+    <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
+  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const icon=t.startsWith('image/')?'🖼️':t.startsWith('video/')?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';return `<div class="drive-item" onclick="selectDriveItem(this)">
+    <div><div class="drive-icon">${icon}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div>
+    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${f.id}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${f.id}')">🗑️</button></div></div>`}).join("");
   list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";
  }catch(e){status.textContent="❌ "+e.message;}
 }
-function fileIcon(type,name){const t=String(type||"").toLowerCase(),n=String(name||"").toLowerCase();if(t.startsWith("image/"))return"🖼️";if(t.startsWith("video/"))return"🎬";if(t.startsWith("audio/"))return"🎵";if(t.includes("pdf")||n.endsWith(".pdf"))return"📕";if(/zip|rar|7z|tar|gzip/.test(t))return"🗜️";if(/word|document|text/.test(t))return"📄";if(/excel|spreadsheet|csv/.test(t))return"📊";return"📄";}
 function selectDriveItem(el){document.querySelectorAll(".drive-item").forEach(x=>x.style.outline="");el.style.outline="2px solid #818cf8";}
 async function openFolder(id,name){
  const r=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:""})});
  if(r.ok){const d=await r.json();enterFolder(id,name,d.token);return;}
- let p=prompt("🔐 Enter password for \""+name+"\"");if(p===null)return;
+ let p=prompt("🔐 Enter password for \""+name+"\"");
+ if(p===null)return;
  const rr=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:p})});
- if(!rr.ok){alert("❌ Wrong folder password");return;}const d=await rr.json();enterFolder(id,name,d.token);
+ if(!rr.ok){alert("❌ Wrong folder password");return;}
+ const d=await rr.json();enterFolder(id,name,d.token);
 }
 function enterFolder(id,name,token){window.driveStack.push({id:window.currentFolder,name:window.currentFolderName,token:window.currentFolderToken});window.currentFolder=id;window.currentFolderName=name;window.currentFolderToken=token;loadDrive();}
 function goBack(){if(!window.driveStack.length)return;const x=window.driveStack.pop();window.currentFolder=x.id||null;window.currentFolderName=x.name||null;window.currentFolderToken=x.token||null;loadDrive();}
 function showNewFolder(){document.getElementById("folderDialog").style.display="flex";document.getElementById("folderDialog").setAttribute("aria-hidden","false");document.getElementById("folderName").value="";document.getElementById("folderPassword").value="";document.getElementById("folderError").textContent="";setTimeout(()=>document.getElementById("folderName").focus(),50);}
 function closeFolderDialog(){const d=document.getElementById("folderDialog");d.style.display="none";d.setAttribute("aria-hidden","true");}
 async function createFolder(){
- const name=document.getElementById("folderName").value.trim(),pass=document.getElementById("folderPassword").value,er=document.getElementById("folderError");if(!name){er.textContent="Folder name is required.";document.getElementById("folderName").focus();return;}
- try{const r=await fetch("/api/folders",{method:"POST",headers:{...folderHeaders(),"Content-Type":"application/json"},body:JSON.stringify({name,password:pass,parentId:window.currentFolder||null})});const d=await r.json();if(!r.ok)throw Error(d.error||"Could not create folder");closeFolderDialog();loadDrive();}catch(e){er.textContent="❌ "+e.message;}
+ const name=document.getElementById("folderName").value.trim(),pass=document.getElementById("folderPassword").value;
+ const er=document.getElementById("folderError");
+ if(!name){er.textContent="Folder name is required.";document.getElementById("folderName").focus();return;}
+ try{
+  const r=await fetch("/api/folders",{method:"POST",headers:{...folderHeaders(),"Content-Type":"application/json"},body:JSON.stringify({name,password:pass,parentId:window.currentFolder||null})});
+  const d=await r.json();if(!r.ok)throw Error(d.error||"Could not create folder");closeFolderDialog();loadDrive();
+ }catch(e){er.textContent="❌ "+e.message;}
 }
-function setUploadProgress(percent,text,retry){document.getElementById("uploadProgress").style.display="block";document.getElementById("uploadProgressFill").style.width=percent+"%";document.getElementById("uploadProgressText").textContent=text||percent+"%";document.getElementById("uploadRetry").textContent=retry||"";}
-function hideUploadProgress(){setTimeout(()=>{document.getElementById("uploadProgress").style.display="none";},900);}
-async function uploadFile(){
- const input=document.getElementById("fileInput"),file=input.files[0];if(!file)return;
- const fd=new FormData();fd.append("file",file);if(window.currentFolder)fd.append("folderId",window.currentFolder);
- setUploadProgress(0,"0% — Uploading "+file.name,"");
- let lastError=null;
- for(let attempt=1;attempt<=3;attempt++){
-  try{
-   await new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open("POST","/api/files");const h=authHeaders();Object.entries(h).forEach(([k,v])=>xhr.setRequestHeader(k,v));xhr.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);setUploadProgress(p,p+"% — "+fmtSize(e.loaded)+" / "+fmtSize(e.total),attempt>1?"Retry "+attempt+"/3":"");}};xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error((()=>{try{return JSON.parse(xhr.responseText).error}catch{return"Upload failed"}})()));};xhr.onerror=()=>reject(new Error("Network error"));xhr.onabort=()=>reject(new Error("Upload cancelled"));xhr.send(fd);});
-   setUploadProgress(100,"100% — Upload complete","");await loadDrive();hideUploadProgress();input.value="";return;
-  }catch(e){lastError=e;setUploadProgress(0,"Upload interrupted — retrying...",`Retry ${attempt}/3`);await new Promise(r=>setTimeout(r,1000*attempt));}
- }
- setUploadProgress(0,"Upload could not be completed",lastError?.message||"Please try again");input.value="";
+function showUploadProgress(show,file){const w=document.getElementById('uploadProgress');if(!w)return;w.style.display=show?'block':'none';if(file){document.getElementById('uploadFileName').textContent=file.name;document.getElementById('uploadPct').textContent='0%';document.getElementById('uploadFill').style.width='0%';}}
+function uploadFile(){
+ const input=document.getElementById('fileInput');const file=input.files[0];if(!file)return;
+ const fd=new FormData();fd.append('file',file);if(window.currentFolder)fd.append('folderId',window.currentFolder);showUploadProgress(true,file);
+ const xhr=new XMLHttpRequest();xhr.open('POST','/api/files');const h=folderHeaders();Object.keys(h).forEach(k=>xhr.setRequestHeader(k,h[k]));
+ xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);document.getElementById('uploadFill').style.width=pct+'%';document.getElementById('uploadPct').textContent=pct+'%';}};
+ xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText||'{}');if(xhr.status>=200&&xhr.status<300){document.getElementById('uploadPct').textContent='100% — Complete';loadDrive();}else alert('❌ '+(d.error||'Upload failed'));}catch(e){alert('❌ Upload failed')}setTimeout(()=>showUploadProgress(false),900);input.value='';};
+ xhr.onerror=()=>{alert('❌ Upload failed');showUploadProgress(false);input.value='';};xhr.send(fd);
 }
-function viewFile(id){
- const page=sessionStorage.getItem("fileShareToken")||"",ft=window.currentFolderToken||"";
- const url="/api/files/"+id+"/view?token="+encodeURIComponent(page)+"&ftoken="+encodeURIComponent(ft);
- window.open(url,"_blank","noopener");
+function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
+function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}
+async function downloadFile(id){
+ const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}
+ const b=await r.blob(),cd=r.headers.get("Content-Disposition")||"",m=cd.match(/filename\\*=UTF-8''([^;]+)/),name=m?decodeURIComponent(m[1]):"download";
+ const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
-async function downloadFile(id){const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}const b=await r.blob(),cd=r.headers.get("Content-Disposition")||"",m=cd.match(/filename\\*=UTF-8''([^;]+)/),name=m?decodeURIComponent(m[1]):"download";const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 async function deleteFile(id){if(!confirm("Delete this file?"))return;const r=await fetch("/api/files/"+id,{method:"DELETE",headers:folderHeaders()});if(r.ok)loadDrive();else alert("Delete failed");}
 async function deleteFolder(id){
- if(!confirm("Delete this folder?\n\nIf it is password protected, you will be asked for its password."))return;let headers=authHeaders();let r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
- if(r.status===403){const p=prompt("🔐 Enter folder password to delete this locked folder:");if(p===null)return;const ur=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:p})});if(!ur.ok){alert("❌ Wrong folder password");return;}const ud=await ur.json();headers={...authHeaders(),"X-Folder-Token":ud.token};r=await fetch("/api/folders/"+id,{method:"DELETE",headers});}
- const d=await r.json().catch(()=>({}));if(r.ok)loadDrive();else alert("❌ "+(d.error||"Delete failed"));
+ if(!confirm("Delete this folder?\n\nIf it is password protected, you will be asked for its password."))return;
+ let headers=authHeaders();
+ let r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
+ if(r.status===403){
+  const p=prompt("🔐 Enter folder password to delete this locked folder:");
+  if(p===null)return;
+  const ur=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:p})});
+  if(!ur.ok){alert("❌ Wrong folder password");return;}
+  const ud=await ur.json();
+  headers={...authHeaders(),"X-Folder-Token":ud.token};
+  r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
+ }
+ const d=await r.json().catch(()=>({}));
+ if(r.ok)loadDrive();else alert("❌ "+(d.error||"Delete failed"));
 }
 /* ENTER KEY */
 
