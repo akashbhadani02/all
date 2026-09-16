@@ -1,34 +1,34 @@
-# Direct Links + MongoDB File Sharing
+# Direct Links + This PC Style File Sharing
 
-This project keeps uploaded file bytes and file metadata in MongoDB GridFS. No local `uploads/` folder is used.
+A small Express + MongoDB GridFS app with a password-protected page and a virtual file drive.
+
+## File Sharing features
+- Create unlimited folders and nested folders.
+- Optional password for every folder.
+- Passwords are stored as scrypt hashes; plaintext folder passwords are not stored.
+- Locked folders require their own password before files can be listed, uploaded, downloaded or deleted.
+- Upload/download/delete files in each folder.
+- Existing GridFS files without `metadata.folderId` remain in **This PC** (root).
+- Delete a folder recursively, including files stored inside it.
+- Responsive UI styled like a simple Windows **This PC** drive/folder view.
 
 ## Environment variables
+Create `.env` locally or set these in Vercel:
 
-```env
-MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@cluster0.example.mongodb.net/?appName=Cluster0
+```text
+MONGODB_URI=your_mongodb_connection_string
 MONGODB_DB=direct_links
 PAGE_PASSWORD=deoxy
 AUTH_SECRET=replace-with-a-long-random-secret
 ```
 
-The File Sharing feature uses the `uploads.files` and `uploads.chunks` GridFS collections. It can reuse an existing MongoDB cluster/database; it does not overwrite unrelated collections.
+Never commit `.env` or expose your MongoDB connection string.
 
-## Local
+## Run
 
 ```bash
 npm install
 npm start
 ```
 
-## Vercel
-
-Add the environment variables in the Vercel project settings and deploy.
-
-
-## Vercel deployment
-Keep the files at the repository root. Required Vercel Environment Variables:
-- MONGODB_URI
-- MONGODB_DB=direct_links
-- AUTH_SECRET
-
-`deoxy` is accepted as the page password by the server. If `PAGE_PASSWORD` is set in Vercel, that configured password is also accepted.
+Then open `http://localhost:3000`.
