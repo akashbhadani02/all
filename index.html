@@ -183,6 +183,8 @@ body {
 .folder-box h3{margin:0 0 16px}.folder-box input{width:100%;padding:12px;margin:6px 0;border:1px solid #d0d5dd;border-radius:9px;font-size:15px;outline:none}.folder-box input:focus{border-color:#6366f1}
 .folder-error{min-height:20px;color:#dc2626;font-size:13px;margin:5px 0}.folder-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.folder-actions button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer}.create-folder{background:#4f46e5;color:#fff}
 @media(max-width:520px){.drive-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:9px}.drive-item{min-height:115px;padding:11px}.drive-icon{font-size:35px}.drive-toolbar{padding:10px}.drive-title{font-size:20px}}
+.preview-dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100003;align-items:center;justify-content:center;padding:14px}.preview-box{width:min(100%,1000px);height:min(92vh,760px);background:#111827;border-radius:18px;overflow:hidden;display:flex;flex-direction:column}.preview-head{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;color:#fff;background:#1f2937}.preview-title{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.preview-close{border:0;background:#374151;color:#fff;width:38px;height:38px;border-radius:9px;font-size:22px;cursor:pointer}.preview-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;background:#0b1220}.preview-body img{max-width:100%;max-height:100%;object-fit:contain}.preview-body video,.preview-body audio{max-width:95%;max-height:90%}.preview-body iframe{width:100%;height:100%;border:0;background:#fff}.preview-note{color:#d1d5db;text-align:center;padding:30px}.view-btn{background:#4f46e5!important;color:#fff}.item-actions{flex-wrap:wrap}
+
 </style>
 </head>
 
@@ -325,6 +327,13 @@ body {
   </div>
 </div>
 
+<div id="previewDialog" class="preview-dialog" onclick="if(event.target===this)closePreview()" aria-hidden="true">
+  <div class="preview-box">
+    <div class="preview-head"><div id="previewTitle" class="preview-title">Preview</div><button class="preview-close" onclick="closePreview()">×</button></div>
+    <div id="previewBody" class="preview-body"><div class="preview-note">Loading...</div></div>
+  </div>
+</div>
+
 <div id="folderDialog" class="folder-dialog" aria-hidden="true">
   <div class="folder-box">
     <h3>📁 Create New Folder</h3>
@@ -347,7 +356,7 @@ async function checkPassword(){
 
 async function openFileModal(){const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();}
 function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closePreview();closeFolderDialog();closeFileModal();}});
 function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
 function folderHeaders(){const h=authHeaders();if(window.currentFolderToken)h["X-Folder-Token"]=window.currentFolderToken;return h;}
 function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(1)+" MB";}
@@ -369,9 +378,9 @@ async function loadDrive(){
   let out=folders.map(f=>`<div class="drive-item" ondblclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')" onclick="selectDriveItem(this)">
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
-  out+=files.map(f=>`<div class="drive-item" ondblclick="downloadFile('${f.id}')" onclick="selectDriveItem(this)">
-    <div><div class="drive-icon">📄</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${fmtSize(f.size)}</div></div>
-    <div class="item-actions"><button onclick="event.stopPropagation();downloadFile('${f.id}')">📥</button><button onclick="event.stopPropagation();deleteFile('${f.id}')">🗑️</button></div></div>`).join("");
+  out+=files.map(f=>{const icon=fileIcon(f.type,f.name);return `<div class="drive-item" onclick="selectDriveItem(this)">
+    <div><div class="drive-icon">${icon}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${escapeHtml(f.type||'File')} • ${fmtSize(f.size)}</div></div>
+    <div class="item-actions"><button class="view-btn" onclick="event.stopPropagation();viewFile('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}','${escapeHtml(f.type||'').replace(/'/g,"&#39;")}')">👁️ View</button><button class="download-btn" onclick="event.stopPropagation();downloadFile('${f.id}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${f.id}')">🗑️</button></div></div>`}).join("");
   list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";
  }catch(e){status.textContent="❌ "+e.message;}
 }
@@ -403,6 +412,9 @@ async function uploadFile(){
  const fd=new FormData();fd.append("file",input.files[0]);if(window.currentFolder)fd.append("folderId",window.currentFolder);
  try{const r=await fetch("/api/files",{method:"POST",headers:folderHeaders(),body:fd});const d=await r.json();if(!r.ok)throw Error(d.error||"Upload failed");loadDrive();}catch(e){alert("❌ "+e.message)}finally{input.value="";}
 }
+function fileIcon(type,name){const t=(type||'').toLowerCase(),n=(name||'').toLowerCase();if(t.startsWith('image/'))return '🖼️';if(t.startsWith('video/'))return '🎬';if(t.startsWith('audio/'))return '🎵';if(t.includes('pdf')||n.endsWith('.pdf'))return '📕';if(t.includes('zip')||t.includes('rar')||t.includes('7z'))return '🗜️';if(t.includes('word')||n.endsWith('.doc')||n.endsWith('.docx'))return '📝';if(t.includes('spreadsheet')||n.endsWith('.xls')||n.endsWith('.xlsx'))return '📊';return '📄';}
+async function viewFile(id,name,type){const body=document.getElementById('previewBody');document.getElementById('previewTitle').textContent=name;document.getElementById('previewDialog').style.display='flex';document.getElementById('previewDialog').setAttribute('aria-hidden','false');body.innerHTML='<div class="preview-note">Loading preview...</div>';try{const r=await fetch('/api/files/'+id+'/view',{headers:folderHeaders()});if(!r.ok)throw Error('Preview failed');const blob=await r.blob(),url=URL.createObjectURL(blob),t=(type||blob.type||'').toLowerCase();let el;if(t.startsWith('image/')){el=document.createElement('img');el.src=url;}else if(t.startsWith('video/')){el=document.createElement('video');el.src=url;el.controls=true;el.autoplay=true;}else if(t.startsWith('audio/')){el=document.createElement('audio');el.src=url;el.controls=true;el.autoplay=true;}else if(t.includes('pdf')){el=document.createElement('iframe');el.src=url;}else{body.innerHTML='<div class="preview-note">👁️ Preview is not available for this file type.<br><br>Use the <b>Download</b> button to open it.</div>';return;}body.innerHTML='';body.appendChild(el);body.dataset.objectUrl=url;}catch(e){body.innerHTML='<div class="preview-note">❌ '+escapeHtml(e.message)+'</div>';}}
+function closePreview(){const d=document.getElementById('previewDialog'),b=document.getElementById('previewBody'),u=b.dataset.objectUrl;if(u)URL.revokeObjectURL(u);b.dataset.objectUrl='';b.innerHTML='';d.style.display='none';d.setAttribute('aria-hidden','true');}
 async function downloadFile(id){
  const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}
  const b=await r.blob(),cd=r.headers.get("Content-Disposition")||"",m=cd.match(/filename\\*=UTF-8''([^;]+)/),name=m?decodeURIComponent(m[1]):"download";
