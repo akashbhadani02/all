@@ -172,6 +172,17 @@ body {
 <style>
 .view-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100010;align-items:center;justify-content:center;padding:16px}.view-panel{width:100%;max-width:1000px;max-height:92vh;background:#111827;border-radius:18px;padding:14px;color:#fff;display:flex;flex-direction:column;gap:10px}.view-head{display:flex;align-items:center;justify-content:space-between}.view-content{width:100%;max-height:78vh;object-fit:contain;border-radius:12px;background:#000}.view-close{border:0;background:#374151;color:#fff;border-radius:10px;padding:9px 13px;font-size:20px;cursor:pointer}.progress-wrap{display:none;margin:12px 0;background:#111827;border-radius:12px;padding:12px}.progress-top{display:flex;justify-content:space-between;font-size:13px;color:#d1d5db;margin-bottom:7px}.progress-bar{height:10px;background:#374151;border-radius:99px;overflow:hidden}.progress-fill{height:100%;width:0;background:#6366f1;transition:width .15s}.progress-text{font-size:12px;color:#9ca3af;margin-top:6px}.view-btn{background:#2563eb}.item-actions button{min-width:40px}
 </style>
+<style>
+/* FILE SHARING PASSWORD */
+#fileSharePasswordModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:200000;align-items:center;justify-content:center;padding:16px}
+.file-share-password-box{width:100%;max-width:390px;background:#1f2937;color:#fff;border-radius:20px;padding:26px;box-shadow:0 20px 80px rgba(0,0,0,.75);text-align:center}
+.file-share-password-box h2{margin:0 0 8px}.file-share-password-box p{color:#9ca3af;margin:0 0 18px;font-size:14px}
+.file-share-password-box input{width:100%;padding:14px;border:1px solid #4b5563;border-radius:10px;background:#111827;color:#fff;font-size:16px;outline:none}
+.file-share-password-box input:focus{border-color:#6366f1}
+.file-share-password-actions{display:flex;gap:9px;margin-top:12px}.file-share-password-actions button{flex:1;padding:13px;border:0;border-radius:10px;font-weight:800;cursor:pointer}
+.file-share-unlock{background:#4f46e5;color:#fff}.file-share-cancel{background:#374151;color:#fff}
+#fileSharePasswordError{color:#f87171;font-size:13px;min-height:18px;margin-top:10px}
+</style>
 </head>
 
 <body>
@@ -255,6 +266,18 @@ body {
   </div>
 </div>
 
+<div id="fileSharePasswordModal" aria-hidden="true">
+  <div class="file-share-password-box">
+    <h2>🔐 File Sharing</h2>
+    <p>Enter the password to access File Sharing.</p>
+    <input id="fileSharePasswordInput" type="password" placeholder="File sharing password" autocomplete="off">
+    <div id="fileSharePasswordError"></div>
+    <div class="file-share-password-actions">
+      <button class="file-share-cancel" onclick="closeFileSharePassword()">Cancel</button>
+      <button class="file-share-unlock" onclick="unlockFileSharing()">🔓 Unlock</button>
+    </div>
+  </div>
+</div>
 <div id="viewModal" class="view-modal" aria-hidden="true"><div class="view-panel"><div class="view-head"><strong id="viewTitle">Preview</strong><button class="view-close" onclick="closeView()">×</button></div><div id="viewBody"></div></div></div>
 <script>
 /* PAGE PASSWORD */
@@ -264,10 +287,39 @@ async function checkPassword(){
  catch(e){error.style.display="block";input.value="";input.focus();}
 }
 
-async function openFileModal(){const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();}
-function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeView();}});
-function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
+async function openFileModal(){
+  if(!sessionStorage.getItem("fileShareAccessToken")){
+    const pm=document.getElementById("fileSharePasswordModal");
+    pm.style.display="flex";pm.setAttribute("aria-hidden","false");
+    const er=document.getElementById("fileSharePasswordError"); if(er)er.textContent="";
+    const inp=document.getElementById("fileSharePasswordInput"); if(inp){inp.value="";setTimeout(()=>inp.focus(),50);}
+    return;
+  }
+  await showFileSharing();
+}
+async function showFileSharing(){
+  const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");
+  window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();
+}
+function closeFileSharePassword(){const m=document.getElementById("fileSharePasswordModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
+async function unlockFileSharing(){
+  const input=document.getElementById("fileSharePasswordInput"),error=document.getElementById("fileSharePasswordError");
+  try{
+    const r=await fetch("/api/file-share/login",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:input.value})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(d.error||"Wrong password");
+    sessionStorage.setItem("fileShareAccessToken",d.token);
+    closeFileSharePassword();
+    await showFileSharing();
+  }catch(e){error.textContent="❌ "+e.message;input.select();input.focus();}
+}
+function closeFileModal(){
+  const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");
+  sessionStorage.removeItem("fileShareAccessToken");
+  window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeFileSharePassword();closeView();}});
+function authHeaders(){const h={Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};const fs=sessionStorage.getItem("fileShareAccessToken");if(fs)h["X-File-Share-Token"]=fs;return h;}
 function folderHeaders(){const h=authHeaders();if(window.currentFolderToken)h["X-Folder-Token"]=window.currentFolderToken;return h;}
 function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(1)+" MB";}
 function escapeHtml(x){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
@@ -289,7 +341,7 @@ async function loadDrive(){
   let out=folders.map(f=>`<div class="drive-item" onclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')">
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
-  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
+  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const fst=encodeURIComponent(sessionStorage.getItem("fileShareAccessToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}&fileShareToken=${fst}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
     <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div></div>
     <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
   list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";hydrateVideoThumbnails();
@@ -533,7 +585,7 @@ function setUploadErrorState(){
  setTimeout(()=>showUploadProgress(false),1800);
 }
 
-function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
+function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+'&fileShareToken='+encodeURIComponent(sessionStorage.getItem("fileShareAccessToken")||"")+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
 function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}
 async function downloadFile(id){
  const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}
@@ -664,6 +716,7 @@ setInterval(function() {
 /* Leaving any dashboard link clears the page session so returning asks for the password again. */
 function leaveProtectedPage(){
   sessionStorage.removeItem("fileShareToken");
+  sessionStorage.removeItem("fileShareAccessToken");
   sessionStorage.removeItem("linkPageUnlocked");
 }
 
