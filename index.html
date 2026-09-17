@@ -167,6 +167,14 @@ body {
   .folder-dialog{padding:12px}.folder-box{max-width:100%;border-radius:15px}
 }
 @media(max-width:380px){.drive-grid{grid-template-columns:1fr}.drive-item{min-height:200px}.image-thumb,.video-thumb{height:135px}}
+/* FILE SHARING PASSWORD */
+#fileSharePasswordModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200000;align-items:center;justify-content:center;padding:18px}
+.file-share-pass-box{width:100%;max-width:390px;background:#111827;border:1px solid rgba(129,140,248,.45);border-radius:20px;padding:24px;box-shadow:0 25px 90px rgba(0,0,0,.75);color:#fff}
+.file-share-pass-box h3{margin:0 0 8px;font-size:22px}.file-share-pass-box p{margin:0 0 18px;color:#9ca3af;font-size:14px}
+#fileSharePasswordInput{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:11px;border:1px solid #374151;background:#0b1220;color:#fff;outline:none;font-size:16px}
+#fileSharePasswordInput:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.15)}
+.file-share-pass-actions{display:flex;gap:10px;margin-top:14px}.file-share-pass-actions button{flex:1;border:0;border-radius:11px;padding:12px;cursor:pointer;font-weight:700}.file-share-pass-cancel{background:#374151;color:#fff}.file-share-pass-unlock{background:#4f46e5;color:#fff}
+#fileSharePasswordError{display:none;color:#fca5a5;font-size:13px;margin-top:10px}
 </style>
 
 <style>
@@ -213,15 +221,15 @@ body {
   <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Single click to open</span></div><div class="link-grid"><a class="link-card" href="https://akashbhadani02.github.io/Akash-bhadani/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">👤</span><span class="link-label">My CV</span></a><a class="link-card" href="https://www.aducate.online" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎓</span><span class="link-label">Aducate App</span></a><a class="link-card" href="https://tectrum.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💻</span><span class="link-label">Tectrum</span></a><a class="link-card" href="https://akashhome.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🏠</span><span class="link-label">IOT</span></a><a class="link-card" href="https://akashstudent.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💰</span><span class="link-label">Fees</span></a><a class="link-card" href="https://mywhat.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💬</span><span class="link-label">My Whatsapp</span></a><a class="link-card" href="https://bhadaniparivar.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌳</span><span class="link-label">My Family Tree</span></a><a class="link-card" href="https://student-report-lake.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📊</span><span class="link-label">Student Report</span></a><a class="link-card" href="https://akashtutor.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🗣️</span><span class="link-label">English Tutor</span></a><a class="link-card" href="https://papers-nu.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📚</span><span class="link-label">Paper</span></a><a class="link-card" href="https://sjbhadanicoin.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🪙</span><span class="link-label">Coin and Note</span></a><a class="link-card" href="https://new-earn-drab.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💵</span><span class="link-label">Earn</span></a><a class="link-card" href="https://spoken-english-meeting.vercel.app/index.html" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎥</span><span class="link-label">Meeting Office Aducate</span></a><a class="link-card" href="https://zoom-meeting-app-aup6.onrender.com/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📹</span><span class="link-label">Mix Meeting</span></a><a class="link-card" href="https://akashbhadani02.github.io/Aducate_English" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌐</span><span class="link-label">Aducate Website</span></a><a class="link-card" href="https://akashbhadani02.github.io/attendance/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📝</span><span class="link-label">Old Student Maruti</span></a><a class="link-card" href="https://akinator-theta.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎮</span><span class="link-label">Akinator</span></a></div></div></div></div>
 
 <!-- ================= FILE SHARING PASSWORD ================= -->
-<div id="filePasswordModal" class="folder-dialog" aria-hidden="true" style="z-index:100005">
-  <div class="folder-box">
-    <h3>🔐 File Sharing</h3>
-    <p style="margin:0 0 10px;color:#667085">Enter File Sharing password to continue.</p>
-    <input id="fileSharePasswordInput" type="password" placeholder="Enter password" autocomplete="off">
-    <div id="fileSharePasswordError" class="folder-error"></div>
-    <div class="folder-actions">
-      <button onclick="closeFilePassword()">Cancel</button>
-      <button class="create-folder" onclick="unlockFileSharing()">🔓 Unlock</button>
+<div id="fileSharePasswordModal" aria-hidden="true">
+  <div class="file-share-pass-box" role="dialog" aria-modal="true" aria-labelledby="fileSharePassTitle">
+    <h3 id="fileSharePassTitle">🔐 File Sharing Password</h3>
+    <p>Enter the password to open File Sharing.</p>
+    <input id="fileSharePasswordInput" type="password" autocomplete="off" placeholder="Enter password">
+    <div id="fileSharePasswordError">❌ Wrong password</div>
+    <div class="file-share-pass-actions">
+      <button class="file-share-pass-cancel" type="button" onclick="closeFileSharePassword()">Cancel</button>
+      <button class="file-share-pass-unlock" type="button" onclick="unlockFileSharing()">🔓 Unlock</button>
     </div>
   </div>
 </div>
@@ -274,35 +282,37 @@ body {
 /* PAGE PASSWORD */
 async function checkPassword(){
  const input=document.getElementById("passwordInput"),error=document.getElementById("error");
- try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:input.value})});if(!r.ok)throw Error();const d=await r.json();sessionStorage.setItem("fileShareToken",d.token);sessionStorage.setItem("linkPageUnlocked","true");document.getElementById("passwordScreen").style.display="none";document.getElementById("mainContent").style.display="flex";error.style.display="none";}
+ try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:input.value})});if(!r.ok)throw Error();const d=await r.json();sessionStorage.setItem("linkPageToken",d.token);sessionStorage.setItem("linkPageUnlocked","true");document.getElementById("passwordScreen").style.display="none";document.getElementById("mainContent").style.display="flex";error.style.display="none";}
  catch(e){error.style.display="block";input.value="";input.focus();}
 }
 
 async function openFileModal(){
  const existing=sessionStorage.getItem("fileShareToken");
- if(existing){return showFileSharing();}
- const m=document.getElementById("filePasswordModal");
- m.style.display="flex";m.setAttribute("aria-hidden","false");
- const i=document.getElementById("fileSharePasswordInput");
- document.getElementById("fileSharePasswordError").textContent="";
- i.value="";setTimeout(()=>i.focus(),50);
+ if(existing){await showFileSharing();return;}
+ const pm=document.getElementById("fileSharePasswordModal");
+ pm.style.display="flex";pm.setAttribute("aria-hidden","false");
+ const inp=document.getElementById("fileSharePasswordInput");
+ const err=document.getElementById("fileSharePasswordError");
+ err.style.display="none";inp.value="";setTimeout(()=>inp.focus(),50);
 }
-function closeFilePassword(){const m=document.getElementById("filePasswordModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
+function closeFileSharePassword(){const pm=document.getElementById("fileSharePasswordModal");pm.style.display="none";pm.setAttribute("aria-hidden","true");}
 async function unlockFileSharing(){
- const input=document.getElementById("fileSharePasswordInput"),err=document.getElementById("fileSharePasswordError");
+ const inp=document.getElementById("fileSharePasswordInput"),err=document.getElementById("fileSharePasswordError");
  try{
-  const r=await fetch("/api/file-sharing/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:input.value})});
-  const d=await r.json();
-  if(!r.ok)throw Error(d.error||"Wrong password");
-  sessionStorage.setItem("fileShareToken",d.token);closeFilePassword();showFileSharing();
- }catch(e){err.textContent="❌ "+e.message;input.select();}
+   const r=await fetch("/api/file-share-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:inp.value})});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||"Wrong password");
+   sessionStorage.setItem("fileShareToken",d.token);
+   closeFileSharePassword();
+   await showFileSharing();
+ }catch(e){err.textContent="❌ "+(e.message||"Wrong password");err.style.display="block";inp.value="";inp.focus();}
 }
 async function showFileSharing(){
- const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");
- window.driveStack=[];window.currentFolder=null;window.currentFolderName=null;window.currentFolderToken=null;await loadDrive();
+ const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();
 }
-function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFilePassword();closeFileModal();closeView();}});
+function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");sessionStorage.removeItem("fileShareToken");}
+document.getElementById("fileSharePasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")unlockFileSharing();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeFileSharePassword();closeView();}});
 function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
 function folderHeaders(){const h=authHeaders();if(window.currentFolderToken)h["X-Folder-Token"]=window.currentFolderToken;return h;}
 function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(1)+" MB";}

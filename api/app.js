@@ -4,12 +4,11 @@ const app = express(), upload = multer({ limits: { files: 1 }, storage: multer.d
 let dbPromise;
 function mongo() { if (!dbPromise) { const uri = process.env.MONGODB_URI; if (!uri) throw Error('MONGODB_URI is not configured'); const c = new MongoClient(uri); dbPromise = c.connect().then(x => x.db(process.env.MONGODB_DB || 'direct_links')); } return dbPromise; }
 function tokenFor(p) { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update(String(p)).digest('hex'); }
-function fileTokenFor(p) { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update('file-sharing:' + String(p)).digest('hex'); }
-function fileSharingPassword() { return String(process.env.FILE_SHARING_PASSWORD || '@'); }
+function fileShareToken() { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update('file-share:' + String(process.env.FILE_SHARE_PASSWORD || '@')).digest('hex'); }
+function fileAuth(req, res, next) { const t = getAuthToken(req); if (t) { const a=Buffer.from(t), b=Buffer.from(fileShareToken()); if (a.length===b.length && crypto.timingSafeEqual(a,b)) return next(); } res.status(401).json({ error: 'File Sharing password required' }); }
 function acceptedPasswords() { const p = String(process.env.PAGE_PASSWORD || '').trim(); return p && p !== 'deoxy' ? [p, 'deoxy'] : ['deoxy']; }
 function getAuthToken(req) { const h = req.headers.authorization || '', t = h.startsWith('Bearer ') ? h.slice(7) : ''; return t || String(req.query?.token || ''); }
 function auth(req, res, next) { const t = getAuthToken(req); if (acceptedPasswords().some(p => t === tokenFor(p))) return next(); res.status(401).json({ error: 'Unauthorized' }); }
-function fileAuth(req, res, next) { const t = getAuthToken(req); if (t === fileTokenFor(fileSharingPassword())) return next(); res.status(401).json({ error: 'File sharing password required' }); }
 function folderToken(id) { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update('folder:' + id).digest('hex'); }
 function folderUnlocked(req, id) { return (req.headers['x-folder-token'] || req.query?.folderToken) === folderToken(id); }
 function hashPass(p) { const salt = crypto.randomBytes(16).toString('hex'), hash = crypto.scryptSync(p, salt, 64).toString('hex'); return { salt, hash }; }
@@ -20,7 +19,7 @@ function folderPasswordMatches(f, p) { return String(f.password || '') === Strin
 function oid(id) { return ObjectId.isValid(id) ? new ObjectId(id) : null; }
 app.use(express.json({ limit: '1mb' })); app.get('/', (q, s) => s.sendFile(path.join(__dirname, '..', 'index.html'))); app.use(express.static(path.join(__dirname, '..')));
 app.post('/api/login', (q, s) => { const p = String(q.body?.password || ''); if (!acceptedPasswords().includes(p)) return s.status(401).json({ error: 'Wrong password' }); s.json({ token: tokenFor(p) }); });
-app.post('/api/file-sharing/login', (q, s) => { const p = String(q.body?.password || ''); if (p !== fileSharingPassword()) return s.status(401).json({ error: 'Wrong file sharing password' }); s.json({ token: fileTokenFor(p) }); });
+app.post('/api/file-share-login', (q, s) => { const p = String(q.body?.password || ''); const expected = String(process.env.FILE_SHARE_PASSWORD || '@'); if (p !== expected) return s.status(401).json({ error: 'Wrong File Sharing password' }); s.json({ token: fileShareToken() }); });
 
 /* Folders */
 app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
