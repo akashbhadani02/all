@@ -115,7 +115,7 @@ body {
 .dashboard{width:min(1180px,100%)}
 .dashboard-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding:22px 24px;border-radius:22px;background:linear-gradient(135deg,#111827,#312e81);color:#fff;box-shadow:0 18px 55px rgba(0,0,0,.22)}
 .dashboard-header h1{margin:0;font-size:28px}.dashboard-header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}
-.dashboard-actions{display:flex;gap:10px;flex-wrap:wrap}.share-top-btn{border:0;cursor:pointer;background:#fff;color:#312e81;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px;box-shadow:0 5px 18px rgba(0,0,0,.14)}
+.dashboard-actions{display:flex;gap:10px;flex-wrap:wrap}.admin-top-btn{border:0;cursor:pointer;background:#111827;color:#fff;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px}.admin-top-btn:hover{background:#1f2937}.share-top-btn{border:0;cursor:pointer;background:#fff;color:#312e81;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px;box-shadow:0 5px 18px rgba(0,0,0,.14)}
 .links-card{background:#fff;border-radius:22px;padding:22px;box-shadow:0 12px 40px rgba(15,23,42,.10)}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.section-head h2{margin:0;color:#172033}.section-head span{color:#667085;font-size:13px}
 .link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
@@ -179,6 +179,8 @@ body {
 
 <style>
 .view-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100010;align-items:center;justify-content:center;padding:16px}.view-panel{width:100%;max-width:1000px;max-height:92vh;background:#111827;border-radius:18px;padding:14px;color:#fff;display:flex;flex-direction:column;gap:10px}.view-head{display:flex;align-items:center;justify-content:space-between}.view-content{width:100%;max-height:78vh;object-fit:contain;border-radius:12px;background:#000}.view-close{border:0;background:#374151;color:#fff;border-radius:10px;padding:9px 13px;font-size:20px;cursor:pointer}.progress-wrap{display:none;margin:12px 0;background:#111827;border-radius:12px;padding:12px}.progress-top{display:flex;justify-content:space-between;font-size:13px;color:#d1d5db;margin-bottom:7px}.progress-bar{height:10px;background:#374151;border-radius:99px;overflow:hidden}.progress-fill{height:100%;width:0;background:#6366f1;transition:width .15s}.progress-text{font-size:12px;color:#9ca3af;margin-top:6px}.view-btn{background:#2563eb}.item-actions button{min-width:40px}
+
+.admin-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:300000;align-items:center;justify-content:center;padding:16px}.admin-box{width:100%;max-width:720px;max-height:90vh;overflow:auto;background:#fff;color:#172033;border-radius:20px;padding:22px;box-shadow:0 25px 90px rgba(0,0,0,.55)}.admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.admin-head h2{margin:0}.admin-head p{margin:6px 0 18px;color:#667085;font-size:13px}.admin-head>button{border:0;background:#eef2ff;border-radius:10px;font-size:24px;width:40px;height:40px;cursor:pointer}.admin-box input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:10px;font-size:15px;margin-top:6px}.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.admin-grid label,.admin-folders label{font-weight:700;font-size:13px}.admin-folders{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}.admin-folder-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;padding:10px;border-radius:10px}.admin-folder-name{font-weight:700;word-break:break-word}.admin-primary{border:0;background:#4f46e5;color:#fff;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;margin-top:12px}.admin-error{color:#dc2626;font-size:13px;min-height:18px;margin-top:7px}.admin-status{font-size:13px;color:#059669;min-height:18px;margin-top:10px}@media(max-width:650px){.admin-grid{grid-template-columns:1fr}.admin-folder-row{grid-template-columns:1fr}.admin-box{padding:16px;max-height:94vh}}
 </style>
 </head>
 
@@ -217,8 +219,32 @@ body {
 <!-- ================= MAIN CONTENT ================= -->
 
 <div id="mainContent"><div class="dashboard">
-  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button></div></div>
+  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button><button class="admin-top-btn" onclick="openAdmin()">⚙️ Main Admin</button></div></div>
   <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Single click to open</span></div><div class="link-grid"><a class="link-card" href="https://akashbhadani02.github.io/Akash-bhadani/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">👤</span><span class="link-label">My CV</span></a><a class="link-card" href="https://www.aducate.online" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎓</span><span class="link-label">Aducate App</span></a><a class="link-card" href="https://tectrum.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💻</span><span class="link-label">Tectrum</span></a><a class="link-card" href="https://akashhome.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🏠</span><span class="link-label">IOT</span></a><a class="link-card" href="https://akashstudent.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💰</span><span class="link-label">Fees</span></a><a class="link-card" href="https://mywhat.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💬</span><span class="link-label">My Whatsapp</span></a><a class="link-card" href="https://bhadaniparivar.vercel.app" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌳</span><span class="link-label">My Family Tree</span></a><a class="link-card" href="https://student-report-lake.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📊</span><span class="link-label">Student Report</span></a><a class="link-card" href="https://akashtutor.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🗣️</span><span class="link-label">English Tutor</span></a><a class="link-card" href="https://papers-nu.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📚</span><span class="link-label">Paper</span></a><a class="link-card" href="https://sjbhadanicoin.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🪙</span><span class="link-label">Coin and Note</span></a><a class="link-card" href="https://new-earn-drab.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">💵</span><span class="link-label">Earn</span></a><a class="link-card" href="https://spoken-english-meeting.vercel.app/index.html" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎥</span><span class="link-label">Meeting Office Aducate</span></a><a class="link-card" href="https://zoom-meeting-app-aup6.onrender.com/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📹</span><span class="link-label">Mix Meeting</span></a><a class="link-card" href="https://akashbhadani02.github.io/Aducate_English" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🌐</span><span class="link-label">Aducate Website</span></a><a class="link-card" href="https://akashbhadani02.github.io/attendance/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">📝</span><span class="link-label">Old Student Maruti</span></a><a class="link-card" href="https://akinator-theta.vercel.app/" target="_self" onclick="leaveProtectedPage()"><span class="link-icon">🎮</span><span class="link-label">Akinator</span></a></div></div></div></div>
+
+
+<!-- ================= MAIN ADMIN ================= -->
+<div id="adminModal" class="admin-modal" aria-hidden="true">
+  <div class="admin-box">
+    <div class="admin-head"><div><h2>⚙️ Main Admin</h2><p>All current passwords are shown in plain text. Changes are saved to MongoDB.</p></div><button onclick="closeAdmin()">×</button></div>
+    <div id="adminLoginArea">
+      <input id="adminLoginPassword" type="password" placeholder="Admin password" autocomplete="off">
+      <div id="adminLoginError" class="admin-error"></div>
+      <button class="admin-primary" onclick="adminLogin()">🔓 Open Admin</button>
+    </div>
+    <div id="adminPanel" style="display:none">
+      <div class="admin-grid">
+        <label>Main Page Password<input id="adminPagePassword" type="text"></label>
+        <label>File Sharing Password<input id="adminFilePassword" type="text"></label>
+        <label>Admin Password<input id="adminAdminPassword" type="text"></label>
+      </div>
+      <h3>📁 Folder Passwords</h3>
+      <div id="adminFolders" class="admin-folders"></div>
+      <div id="adminSaveStatus" class="admin-status"></div>
+      <button class="admin-primary" onclick="saveAdminPasswords()">💾 Save All Passwords</button>
+    </div>
+  </div>
+</div>
 
 <!-- ================= FILE SHARING PASSWORD ================= -->
 <div id="fileSharePasswordModal" aria-hidden="true">
@@ -279,6 +305,15 @@ body {
 
 <div id="viewModal" class="view-modal" aria-hidden="true"><div class="view-panel"><div class="view-head"><strong id="viewTitle">Preview</strong><button class="view-close" onclick="closeView()">×</button></div><div id="viewBody"></div></div></div>
 <script>
+
+/* MAIN ADMIN */
+async function openAdmin(){const m=document.getElementById('adminModal');m.style.display='flex';m.setAttribute('aria-hidden','false');document.getElementById('adminLoginArea').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminLoginPassword').value='';document.getElementById('adminLoginError').textContent='';setTimeout(()=>document.getElementById('adminLoginPassword').focus(),50);}
+function closeAdmin(){const m=document.getElementById('adminModal');m.style.display='none';m.setAttribute('aria-hidden','true');}
+async function adminLogin(){const p=document.getElementById('adminLoginPassword').value,e=document.getElementById('adminLoginError');try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Wrong admin password');sessionStorage.setItem('adminToken',d.token);document.getElementById('adminLoginArea').style.display='none';document.getElementById('adminPanel').style.display='block';await loadAdminPasswords();}catch(x){e.textContent='❌ '+x.message;}}
+async function loadAdminPasswords(){const r=await fetch('/api/admin/passwords',{headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load passwords');document.getElementById('adminPagePassword').value=d.pagePassword;document.getElementById('adminFilePassword').value=d.fileSharePassword;document.getElementById('adminAdminPassword').value=d.adminPassword;document.getElementById('adminFolders').innerHTML=d.folders.length?d.folders.map(f=>`<div class="admin-folder-row"><div class="admin-folder-name">📁 ${escapeHtml(f.name)}${f.protected?' 🔐':''}</div><label>Password<input class="admin-folder-pass" data-id="${escapeHtml(f.id)}" type="text" value="${escapeHtml(f.password)}" placeholder="No password"></label></div>`).join(''):'<div class="admin-status">No folders created yet.</div>';}
+async function saveAdminPasswords(){const status=document.getElementById('adminSaveStatus');const folders=[...document.querySelectorAll('.admin-folder-pass')].map(x=>({id:x.dataset.id,password:x.value}));try{const r=await fetch('/api/admin/passwords',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('adminToken')},body:JSON.stringify({pagePassword:document.getElementById('adminPagePassword').value,fileSharePassword:document.getElementById('adminFilePassword').value,adminPassword:document.getElementById('adminAdminPassword').value,folders})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Save failed');status.textContent='✅ All passwords saved. New passwords are active now.';sessionStorage.removeItem('fileShareToken');sessionStorage.removeItem('adminToken');}catch(e){status.textContent='❌ '+e.message;}}
+document.getElementById('adminLoginPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+
 /* PAGE PASSWORD */
 async function checkPassword(){
  const input=document.getElementById("passwordInput"),error=document.getElementById("error");
