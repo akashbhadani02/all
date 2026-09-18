@@ -231,14 +231,14 @@ body {
 <!-- ================= MAIN CONTENT ================= -->
 
 <div id="mainContent"><div class="dashboard">
-  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button><button class="admin-top-btn" onclick="openAdmin()">⚙️ Main Admin</button></div></div>
-  <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Password protection can be enabled per link</span></div><div id="linkGrid" class="link-grid"></div></div></div></div></div>
+  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="admin-top-btn" onclick="openAdmin()">⚙️ Main Admin</button><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button></div></div>
+  <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Welcome</span></div><div id="linkGrid" class="link-grid"></div></div></div></div></div>
 
 
 <!-- ================= MAIN ADMIN ================= -->
 <div id="adminModal" class="admin-modal" aria-hidden="true">
   <div class="admin-box">
-    <div class="admin-head"><div><h2>⚙️ Main Admin</h2><p>All current passwords are shown in plain text. Changes are saved to MongoDB.</p></div><button onclick="closeAdmin()">×</button></div>
+    <div class="admin-head"><div><h2>⚙️ Main Admin</h2><p>Enter password below:</p></div><button onclick="closeAdmin()">×</button></div>
     <div id="adminLoginArea">
       <input id="adminLoginPassword" type="password" placeholder="Admin password" autocomplete="off">
       <div id="adminLoginError" class="admin-error"></div>
