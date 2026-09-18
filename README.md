@@ -1,10 +1,18 @@
-# Direct Links
+# WebOS + Link Manager + Shared Drive
 
-## Upload Folder
-Use **📂 Upload Folder** to select a complete folder. Every file inside the selected folder, including files in nested subfolders, is uploaded automatically and the same folder/subfolder structure is recreated in the app.
+This package combines the Windows-style WebOS desktop with the existing Link/Admin/File Sharing backend.
 
-The browser supplies each file's `webkitRelativePath` (for example `Photos/2026/IMG001.jpg`); the uploader uses that path to create the required folders before uploading the file.
+## Run locally
+1. Install Node.js.
+2. Open this folder in PowerShell/CMD.
+3. Run `npm install`.
+4. Set the MongoDB connection and secrets in `.env` as required by the existing backend.
+5. Run `npm start`.
+6. Open `http://localhost:3000`.
 
-Large files are sent in 3 MB chunks, so the application does not impose a total video/file size limit. Actual hosting/storage limits can still apply.
+## Desktop apps added
+- Main Admin: edit page/file-sharing/admin passwords, all project links and folder passwords.
+- My Links: all backend links with protected-link login.
+- Shared Drive: password-protected MongoDB/GridFS Drive, folders, folder passwords, upload files/folders, preview and download.
 
-For folder selection, use a current Chrome or Edge browser.
+The original backend files/API routes are retained.
