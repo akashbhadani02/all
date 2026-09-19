@@ -629,7 +629,31 @@ function uploadOneChunked(file,folderId,onProgress){
        if(xhr.status>=200&&xhr.status<300){
          uploaded+=blob.size;index++;
          if(index<total)send();
-         else{finished=true;if(onProgress)onProgress(100);resolve(d);}
+         else{
+           (async()=>{
+             try{
+               const headers=authHeaders();
+               if(folderId){
+                 const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
+                 if(folderToken) headers['X-Folder-Token']=folderToken;
+               }
+               const cr=await fetch('/api/files/chunk/complete',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({uploadId})});
+               const cd=await cr.json().catch(()=>({}));
+               if(!cr.ok) throw new Error(cd.error||'Upload completion failed');
+               finished=true;if(onProgress)onProgress(100);resolve(cd);
+             }catch(err){
+               try{
+                 const ah=authHeaders();
+                 if(folderId){
+                   const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
+                   if(folderToken) ah['X-Folder-Token']=folderToken;
+                 }
+                 await fetch('/api/files/chunk/abort',{method:'POST',headers:{...ah,'Content-Type':'application/json'},body:JSON.stringify({uploadId})});
+               }catch(_){ }
+               fail(err.message||'Upload completion failed');
+             }
+           })();
+         }
        }else fail(d.error||'Upload failed');
      };
      xhr.onerror=()=>fail('Upload failed. Please try again.');
