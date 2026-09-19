@@ -74,7 +74,20 @@ app.get('/api/admin/passwords',adminAuth,async(q,s)=>{try{const d=await getSetti
 app.put('/api/admin/passwords',adminAuth,async(q,s)=>{try{const db=await mongo(),d=await getSettings(),b=q.body||{};const pagePassword=String(b.pagePassword??d.pagePassword),fileSharePassword=String(b.fileSharePassword??d.fileSharePassword),adminPassword=String(b.adminPassword??d.adminPassword);if(!pagePassword||!fileSharePassword||!adminPassword)return s.status(400).json({error:'Passwords cannot be empty'});await db.collection('app_settings').updateOne({_id:'passwords'},{$set:{pagePassword,fileSharePassword,adminPassword,updatedAt:new Date()}},{upsert:true});if(Array.isArray(b.folders)){for(const f of b.folders){if(!f||!f.id)continue;const id=oid(f.id);if(!id)continue;const pass=String(f.password||'');if(pass)await db.collection('folders').updateOne({_id:id},{$set:{password:pass},$unset:{passwordHash:'',passwordSalt:''}});else await db.collection('folders').updateOne({_id:id},{$unset:{password:'',passwordHash:'',passwordSalt:''}});}}if(Array.isArray(b.links)){const clean=b.links.map((x,i)=>({id:String(x.id||('link-'+i)),name:String(x.name||'Link'),url:String(x.url||''),icon:String(x.icon||'🔗'),password:String(x.password||''),protected:Boolean(x.protected)}));if(clean.some(x=>!x.url||!/^https?:\/\//i.test(x.url)))return s.status(400).json({error:'Every link must have a valid http/https URL'});await db.collection('app_settings').updateOne({_id:'links'},{$set:{links:clean,updatedAt:new Date()}},{upsert:true});}s.json({ok:true});}catch(e){s.status(500).json({error:e.message});}});
 
 
-app.get('/api/links',async(q,s)=>{try{s.json(await getLinks());}catch(e){s.status(500).json({error:e.message});}});
+app.get('/api/links',async(q,s)=>{
+ try {
+   const links=await getLinks();
+   s.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+   s.json(links);
+ } catch(e) {
+   // Public links should still render if the database is temporarily unavailable.
+   // Admin/file features continue to require MongoDB, but the landing links use the
+   // built-in defaults so a transient DB problem does not produce "Could not load links".
+   console.error('GET /api/links failed:', e);
+   s.setHeader('Cache-Control','no-store');
+   s.json(DEFAULT_LINKS);
+ }
+});
 app.post('/api/link-login',async(q,s)=>{try{const id=String(q.body?.id||''),p=String(q.body?.password||''),links=await getLinks(),l=links.find(x=>String(x.id)===id);if(!l)return s.status(404).json({error:'Link not found'});if(!l.protected)return s.json({ok:true,url:l.url});if(String(l.password||'')!==p)return s.status(401).json({error:'Wrong link password'});s.json({ok:true,url:l.url,token:linkToken(id,p)});}catch(e){s.status(500).json({error:e.message});}});
 app.get('/api/admin/links',adminAuth,async(q,s)=>{try{s.json(await getLinks());}catch(e){s.status(500).json({error:e.message});}});
 app.put('/api/admin/links',adminAuth,async(q,s)=>{try{const incoming=Array.isArray(q.body?.links)?q.body.links:[];if(!incoming.length)return s.status(400).json({error:'At least one link is required'});const clean=incoming.map((x,i)=>({id:String(x.id||('link-'+i)),name:String(x.name||'Link'),url:String(x.url||''),icon:String(x.icon||'🔗'),password:String(x.password||''),protected:Boolean(x.protected)}));if(clean.some(x=>!x.url||!/^https?:\/\//i.test(x.url)))return s.status(400).json({error:'Every link must have a valid http/https URL'});const db=await mongo();await db.collection('app_settings').updateOne({_id:'links'},{$set:{links:clean,updatedAt:new Date()}},{upsert:true});s.json({ok:true,links:clean});}catch(e){s.status(500).json({error:e.message});}});
