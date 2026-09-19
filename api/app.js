@@ -2,7 +2,22 @@ const express = require('express'), path = require('path'), multer = require('mu
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
 const app = express(), upload = multer({ limits: { files: 1 }, storage: multer.diskStorage({ destination: (req, file, cb) => cb(null, '/tmp'), filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '-' + Date.now()) }) });
 let dbPromise;
-function mongo() { if (!dbPromise) { const uri = process.env.MONGODB_URI; if (!uri) throw Error('MONGODB_URI is not configured'); const c = new MongoClient(uri); dbPromise = c.connect().then(x => x.db(process.env.MONGODB_DB || 'direct_links')); } return dbPromise; }
+function mongo() {
+  if (!dbPromise) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw Error('MONGODB_URI is not configured');
+    const c = new MongoClient(uri);
+    dbPromise = c.connect().then(async x => {
+      const db = x.db(process.env.MONGODB_DB || 'direct_links');
+      // Keep unfinished uploads from occupying storage forever.
+      const chunks = db.collection('upload_chunks');
+      await chunks.createIndex({ uploadId: 1, index: 1 }, { unique: true });
+      await chunks.createIndex({ createdAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+      return db;
+    });
+  }
+  return dbPromise;
+}
 function tokenFor(p) { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update(String(p)).digest('hex'); }
 function adminToken(p) { return crypto.createHmac('sha256', process.env.AUTH_SECRET || 'change-this-secret').update('admin:' + String(p)).digest('hex'); }
 async function getSettings() {
@@ -97,12 +112,24 @@ app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo()
 // MongoDB/storage quotas, browser/device constraints, or plan limits.
 const chunkUpload = multer({
   storage: multer.memoryStorage(),
+  // Keep each HTTP request small for serverless hosting, while allowing
+  // the overall file to be as large as the storage/hosting plan permits.
   limits: { fileSize: 4 * 1024 * 1024, files: 1 }
 });
 
+async function validateUploadTarget(req, db, fid) {
+  if (!fid) return;
+  const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id });
+  if (!f) throw Object.assign(new Error('Folder not found'), { statusCode: 404 });
+  if ((f.password || f.passwordHash) && !folderUnlocked(req, fid))
+    throw Object.assign(new Error('Folder is locked'), { statusCode: 403 });
+}
+
+/* Store one chunk. Chunks can now be uploaded in parallel from the browser. */
 app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s) => {
   try {
     if (!q.file) return s.status(400).json({ error: 'No chunk selected' });
+
     const uploadId = String(q.body?.uploadId || '');
     const index = Number(q.body?.index);
     const total = Number(q.body?.total);
@@ -110,44 +137,98 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     const mime = String(q.body?.mime || 'application/octet-stream');
     const size = Number(q.body?.size || 0);
     const fid = q.body?.folderId || null;
-    if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || index >= total || total > 100000000)
-      return s.status(400).json({ error: 'Invalid upload information' });
 
-    const db = await mongo();
-    if (fid) {
-      const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id });
-      if (!f) return s.status(404).json({ error: 'Folder not found' });
-      if ((f.password || f.passwordHash) && !folderUnlocked(q, fid))
-        return s.status(403).json({ error: 'Folder is locked' });
+    if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) ||
+        index < 0 || total < 1 || index >= total || total > 100000000) {
+      return s.status(400).json({ error: 'Invalid upload information' });
     }
 
-    const chunks = db.collection('upload_chunks');
-    await chunks.createIndex({ uploadId: 1, index: 1 }, { unique: true });
-    await chunks.createIndex({ createdAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+    const db = await mongo();
+    await validateUploadTarget(q, db, fid);
 
+    const chunks = db.collection('upload_chunks');
     await chunks.updateOne(
       { uploadId, index },
-      { $set: { uploadId, index, total, name, mime, size, folderId: fid, data: Buffer.from(q.file.buffer), createdAt: new Date() } },
+      {
+        $set: {
+          uploadId, index, total, name, mime, size, folderId: fid,
+          data: Buffer.from(q.file.buffer), createdAt: new Date()
+        }
+      },
       { upsert: true }
     );
 
-    if (index !== total - 1) return s.json({ ok: true, index, complete: false });
+    s.json({ ok: true, index, complete: false });
+  } catch (e) {
+    s.status(e.statusCode || 500).json({ error: e.message || 'Upload failed' });
+  }
+});
 
+/* Remove abandoned/incomplete upload chunks immediately. */
+app.post('/api/files/chunk/abort', fileAuth, async (q, s) => {
+  try {
+    const uploadId = String(q.body?.uploadId || '');
+    if (uploadId) {
+      const db = await mongo();
+      await db.collection('upload_chunks').deleteMany({ uploadId });
+    }
+    s.json({ ok: true });
+  } catch (e) {
+    s.status(500).json({ error: e.message || 'Could not cancel upload' });
+  }
+});
+
+/* Finalize only after the browser confirms that every chunk arrived. */
+app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
+  try {
+    const uploadId = String(q.body?.uploadId || '');
+    if (!uploadId) return s.status(400).json({ error: 'Missing uploadId' });
+
+    const db = await mongo();
+    const chunks = db.collection('upload_chunks');
     const docs = await chunks.find({ uploadId }).sort({ index: 1 }).toArray();
-    if (docs.length !== total) return s.json({ ok: true, complete: false, received: docs.length });
 
-    const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(name, {
-      contentType: mime,
+    if (!docs.length) return s.status(404).json({ error: 'Upload chunks not found' });
+
+    const total = Number(docs[0].total);
+    if (docs.length !== total) {
+      return s.status(409).json({
+        error: `Upload is incomplete (${docs.length}/${total} chunks received)`,
+        received: docs.length,
+        total
+      });
+    }
+
+    for (let i = 0; i < total; i++) {
+      if (Number(docs[i].index) !== i)
+        return s.status(409).json({ error: 'Upload chunks are incomplete or out of order' });
+    }
+
+    const fid = docs[0].folderId || null;
+    await validateUploadTarget(q, db, fid);
+
+    const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(docs[0].name, {
+      contentType: docs[0].mime || 'application/octet-stream',
       metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid }
     });
-    for (const d of docs) { const chunkData = Buffer.isBuffer(d.data) ? d.data : (d.data?.buffer ? Buffer.from(d.data.buffer) : Buffer.from(d.data)); st.write(chunkData); }
+
+    for (const d of docs) {
+      const chunkData = Buffer.isBuffer(d.data)
+        ? d.data
+        : (d.data?.buffer ? Buffer.from(d.data.buffer) : Buffer.from(d.data));
+      st.write(chunkData);
+    }
+
     await new Promise((resolve, reject) => {
-      st.on('finish', resolve); st.on('error', reject); st.end();
+      st.on('finish', resolve);
+      st.on('error', reject);
+      st.end();
     });
+
     await chunks.deleteMany({ uploadId });
-    s.json({ ok: true, complete: true, size, name });
+    s.json({ ok: true, complete: true, size: docs[0].size, name: docs[0].name });
   } catch (e) {
-    s.status(500).json({ error: e.message || 'Upload failed' });
+    s.status(e.statusCode || 500).json({ error: e.message || 'Upload completion failed' });
   }
 });
 

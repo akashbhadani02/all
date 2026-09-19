@@ -243,52 +243,84 @@ async function ensureRelativeFolder(relativePath){
  return {id:parent,token};
 }
 
-function uploadOneChunked(file,folderId,onProgress){
- return new Promise((resolve,reject)=>{
-   const CHUNK=3*1024*1024;
-   const total=Math.max(1,Math.ceil(file.size/CHUNK));
-   const uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
-   let index=0,uploaded=0,finished=false;
+async function uploadOneChunked(file,folderId,onProgress){
+  const CHUNK=3*1024*1024;
+  const total=Math.max(1,Math.ceil(file.size/CHUNK));
+  const uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
+  const MAX_PARALLEL=4;
+  let uploaded=0, nextIndex=0, failed=false;
 
-   const fail=(msg)=>{if(finished)return;finished=true;reject(new Error(msg));};
-   const send=()=>{
-     const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
-     const fd=new FormData();
-     fd.append('chunk',blob,file.name);
-     fd.append('uploadId',uploadId);
-     fd.append('index',String(index));
-     fd.append('total',String(total));
-     fd.append('name',file.name);
-     fd.append('mime',file.type||'application/octet-stream');
-     fd.append('size',String(file.size));
-     if(folderId)fd.append('folderId',folderId);
+  const sendChunk=async(index)=>{
+    const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
+    const fd=new FormData();
+    fd.append('chunk',blob,file.name);
+    fd.append('uploadId',uploadId);
+    fd.append('index',String(index));
+    fd.append('total',String(total));
+    fd.append('name',file.name);
+    fd.append('mime',file.type||'application/octet-stream');
+    fd.append('size',String(file.size));
+    if(folderId)fd.append('folderId',folderId);
 
-     const xhr=new XMLHttpRequest();
-     xhr.open('POST','/api/files/chunk');
-     const hh=authHeaders();
-     if(folderId){
-       const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
-       if(folderToken)hh['X-Folder-Token']=folderToken;
-     }
-     Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
-     xhr.upload.onprogress=e=>{
-       if(e.lengthComputable && onProgress)
-         onProgress(Math.min(99,Math.round(((uploaded+e.loaded)/Math.max(1,file.size))*100)));
-     };
-     xhr.onload=()=>{
-       let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
-       if(xhr.status>=200&&xhr.status<300){
-         uploaded+=blob.size;index++;
-         if(index<total)send();
-         else{finished=true;if(onProgress)onProgress(100);resolve(d);}
-       }else fail(d.error||'Upload failed');
-     };
-     xhr.onerror=()=>fail('Upload failed. Please try again.');
-     xhr.ontimeout=()=>fail('Upload timed out. Please try again.');
-     xhr.send(fd);
-   };
-   send();
- });
+    return new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST','/api/files/chunk');
+      const hh=authHeaders();
+      if(folderId){
+        const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
+        if(folderToken)hh['X-Folder-Token']=folderToken;
+      }
+      Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
+      xhr.upload.onprogress=e=>{
+        if(e.lengthComputable && onProgress)
+          onProgress(Math.min(99,Math.round(((uploaded+e.loaded)/Math.max(1,file.size))*100)));
+      };
+      xhr.onload=()=>{
+        let d={}; try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
+        if(xhr.status>=200&&xhr.status<300){
+          uploaded+=blob.size;
+          if(onProgress)onProgress(Math.min(99,Math.round((uploaded/file.size)*100)));
+          resolve(d);
+        } else reject(new Error(d.error||'Upload failed'));
+      };
+      xhr.onerror=()=>reject(new Error('Upload failed. Please try again.'));
+      xhr.ontimeout=()=>reject(new Error('Upload timed out. Please try again.'));
+      xhr.send(fd);
+    });
+  };
+
+  const worker=async()=>{
+    while(true){
+      const index=nextIndex++;
+      if(index>=total || failed)return;
+      try{await sendChunk(index);}
+      catch(e){failed=true;throw e;}
+    }
+  };
+
+  try{
+    await Promise.all(Array.from({length:Math.min(MAX_PARALLEL,total)},()=>worker()));
+    if(failed)throw new Error('Upload failed.');
+    const r=await fetch('/api/files/chunk/complete',{
+      method:'POST',
+      headers:{...authHeaders(),'Content-Type':'application/json'},
+      body:JSON.stringify({uploadId})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Could not finish upload');
+    if(onProgress)onProgress(100);
+    return d;
+  }catch(e){
+    // Best-effort cleanup. Expiry on the server also removes abandoned chunks.
+    try{
+      await fetch('/api/files/chunk/abort',{
+        method:'POST',
+        headers:{...authHeaders(),'Content-Type':'application/json'},
+        body:JSON.stringify({uploadId})
+      });
+    }catch(_){}
+    throw e;
+  }
 }
 
 async function uploadFileBatch(files,isFolder){
@@ -303,27 +335,36 @@ async function uploadFileBatch(files,isFolder){
 
  let done=0;
  try{
-   for(const file of cleanFiles){
-     let targetFolder=window.currentFolder||null;
-     if(isFolder){
-       // Preserve the selected folder's complete subfolder structure.
-       const rel=String(file.webkitRelativePath||'').replace(/\\/g,'/');
-       const parts=rel.split('/').filter(Boolean);
-       parts.pop(); // filename
-       if(parts.length){
-         const target=await ensureRelativeFolder(parts.join('/'));
-         targetFolder=target.id;
-         if(target.token) file.__folderToken=target.token;
+   // Multiple independent files upload together. Each file itself also
+   // uploads up to 4 chunks in parallel.
+   const concurrency=isFolder?1:Math.min(3,cleanFiles.length);
+   let cursor=0;
+   const worker=async()=>{
+     while(true){
+       const idx=cursor++;
+       if(idx>=cleanFiles.length)return;
+       const file=cleanFiles[idx];
+       let targetFolder=window.currentFolder||null;
+       if(isFolder){
+         const rel=String(file.webkitRelativePath||'').replace(/\\/g,'/');
+         const parts=rel.split('/').filter(Boolean);
+         parts.pop();
+         if(parts.length){
+           const target=await ensureRelativeFolder(parts.join('/'));
+           targetFolder=target.id;
+           if(target.token) file.__folderToken=target.token;
+         }
        }
-     }
 
-     setBatchProgress(done,cleanFiles.length,file.name,0);
-     await uploadOneChunked(file,targetFolder,pct=>{
-       setBatchProgress(done,cleanFiles.length,file.name,pct);
-     });
-     done++;
-     setBatchProgress(done,cleanFiles.length,file.name,100);
-   }
+       setBatchProgress(done,cleanFiles.length,file.name,0);
+       await uploadOneChunked(file,targetFolder,pct=>{
+         setBatchProgress(done,cleanFiles.length,file.name,pct);
+       });
+       done++;
+       setBatchProgress(done,cleanFiles.length,file.name,100);
+     }
+   };
+   await Promise.all(Array.from({length:concurrency},()=>worker()));
    document.getElementById('uploadPct').textContent='100% — Complete';
    document.getElementById('uploadFill').style.width='100%';
    await loadDrive();
