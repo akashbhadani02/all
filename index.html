@@ -819,15 +819,14 @@ function leaveProtectedPage(){
 
 /* ================= SESSION ================= */
 
-/* Keep password only while the protected dashboard session is active. External links clear it. */
+/* Always require the main page password when the page is opened/refreshed.
+   Do not auto-bypass the password using sessionStorage. */
+sessionStorage.removeItem("linkPageUnlocked");
+sessionStorage.removeItem("linkPageToken");
+document.getElementById("passwordScreen").style.display = "flex";
+document.getElementById("mainContent").style.display = "none";
+setTimeout(()=>document.getElementById("passwordInput")?.focus(), 50);
 loadLinks();
-
-if (sessionStorage.getItem("linkPageUnlocked") === "true") {
-
-    document.getElementById("passwordScreen").style.display = "none";
-    document.getElementById("mainContent").style.display = "flex";
-
-}
 
 
 </script>
