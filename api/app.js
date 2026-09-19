@@ -97,7 +97,7 @@ app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo()
 // MongoDB/storage quotas, browser/device constraints, or plan limits.
 const chunkUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 4 * 1024 * 1024, files: 1 }
+  limits: { fileSize: 4 * 1024 * 1024, files: 1, fields: 30 }
 });
 
 app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s) => {
@@ -106,8 +106,8 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     const uploadId = String(q.body?.uploadId || '');
     const index = Number(q.body?.index);
     const total = Number(q.body?.total);
-    const name = String(q.body?.name || 'file');
-    const mime = String(q.body?.mime || 'application/octet-stream');
+    const name = String(q.body?.name || q.file?.originalname || 'file').slice(0, 1024) || 'file';
+    const mime = String(q.body?.mime || q.file?.mimetype || 'application/octet-stream').slice(0, 200) || 'application/octet-stream';
     const size = Number(q.body?.size || 0);
     const fid = q.body?.folderId || null;
     if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || index >= total || total > 100000000)
