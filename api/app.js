@@ -1,4 +1,4 @@
-const express = require('express'), path = require('path'), multer = require('multer'), crypto = require('crypto'), fs = require('fs');
+const express = require('express'), path = require('path'), multer = require('multer'), crypto = require('crypto'), fs = require('fs'), archiver = require('archiver');
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
 const app = express(), upload = multer({ limits: { files: 1 }, storage: multer.diskStorage({ destination: (req, file, cb) => cb(null, '/tmp'), filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '-' + Date.now()) }) });
 let dbPromise;
@@ -68,6 +68,55 @@ app.put('/api/admin/links',adminAuth,async(q,s)=>{try{const incoming=Array.isArr
 app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders', fileAuth, async (q, s) => { try { const name = String(q.body?.name || '').trim(), pass = String(q.body?.password || ''), raw = q.body?.parentId || null; if (!name) return s.status(400).json({ error: 'Folder name is required' }); if (name.length > 100) return s.status(400).json({ error: 'Folder name is too long' }); if (/[\\/]/.test(name)) return s.status(400).json({ error: 'Folder name cannot contain / or \\' }); const db = await mongo(), parentId = raw && oid(raw) ? oid(raw) : null; if (raw && !parentId) return s.status(400).json({ error: 'Invalid parent folder' }); if (parentId) { const par = await db.collection('folders').findOne({ _id: parentId }); if (!par) return s.status(404).json({ error: 'Parent folder not found' }); if ((par.password || par.passwordHash) && !folderUnlocked(q, parentId.toString())) return s.status(403).json({ error: 'Parent folder is locked' }); } if (await db.collection('folders').findOne({ name, parentId })) return s.status(409).json({ error: 'A folder with this name already exists here' }); const d = { name, parentId, createdAt: new Date() }; if (pass) { d.password = pass; } const r = await db.collection('folders').insertOne(d); s.json({ ok: true, folder: { id: r.insertedId.toString(), name, parentId: parentId?.toString() || null, protected: !!pass } }); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders/:id/unlock', fileAuth, async (q, s) => { try { const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await (await mongo()).collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); const supplied = String(q.body?.password || ''); if (!f.password && !f.passwordHash || folderPasswordMatches(f, supplied)) { if (!f.password && f.passwordHash) { await (await mongo()).collection('folders').updateOne({ _id: id }, { $set: { password: supplied }, $unset: { passwordHash: '', passwordSalt: '' } }); } return s.json({ ok: true, token: folderToken(id.toString()) }); } s.status(401).json({ error: 'Wrong folder password' }); } catch (e) { s.status(500).json({ error: e.message }); } });
+app.get('/api/folders/:id/download', fileAuth, async (q, s) => {
+ try {
+  const id = oid(q.params.id);
+  if (!id) return s.status(400).json({ error: 'Invalid folder id' });
+  const db = await mongo();
+  const root = await db.collection('folders').findOne({ _id: id });
+  if (!root) return s.status(404).json({ error: 'Folder not found' });
+  if ((root.password || root.passwordHash) && !folderUnlocked(q, id.toString())) return s.status(403).json({ error: 'Folder is locked' });
+
+  const folderIds = [id];
+  for (let i = 0; i < folderIds.length; i++) {
+   const children = await db.collection('folders').find({ parentId: folderIds[i] }).project({ _id: 1 }).toArray();
+   for (const child of children) {
+    const childFolder = await db.collection('folders').findOne({ _id: child._id }, { projection: { _id: 1 } });
+    if (childFolder) folderIds.push(child._id);
+   }
+  }
+  const folderMap = new Map();
+  const allFolders = await db.collection('folders').find({ _id: { $in: folderIds } }).toArray();
+  for (const f of allFolders) folderMap.set(f._id.toString(), f);
+
+  const files = await db.collection('uploads.files').find({ 'metadata.folderId': { $in: folderIds.map(x => x.toString()) } }).project({ _id: 1, filename: 1, metadata: 1 }).toArray();
+  const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+  const zipName = `${String(root.name).replace(/[^a-zA-Z0-9._ -]/g, '_')}.zip`;
+  s.statusCode = 200;
+  s.setHeader('Content-Type', 'application/zip');
+  s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`);
+  s.setHeader('Cache-Control', 'no-store');
+  const archive = archiver('zip', { zlib: { level: 6 } });
+  archive.on('error', err => { if (!s.headersSent) s.status(500).json({ error: err.message }); else s.destroy(err); });
+  archive.pipe(s);
+
+  function folderPath(fid) {
+   const parts = []; let cur = folderMap.get(String(fid));
+   while (cur) { parts.unshift(String(cur.name)); if (!cur.parentId) break; cur = folderMap.get(String(cur.parentId)); }
+   if (parts.length && parts[0] === String(root.name)) parts.shift();
+   return parts.join('/');
+  }
+  for (const file of files) {
+   const rel = [String(root.name), folderPath(file.metadata?.folderId), String(file.filename || 'file')].filter(Boolean).join('/').replace(/\\+/g, '/');
+   archive.append(bucket.openDownloadStream(file._id), { name: rel });
+  }
+  await archive.finalize();
+ } catch (e) {
+  if (!s.headersSent) s.status(500).json({ error: e.message || 'Folder download failed' });
+  else s.destroy(e);
+ }
+});
+
 app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
  const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' });
  const db = await mongo(), root = await db.collection('folders').findOne({ _id: id });
@@ -87,6 +136,63 @@ app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
  s.json({ ok: true, deletedFolders: folderIds.length, deletedFiles: fileDocs.length });
  } catch (e) { s.status(500).json({ error: e.message }); } });
 
+
+/* Windows-style file management */
+function cleanName(v, fallback='New item') {
+  const n=String(v||'').trim();
+  if(!n) return null;
+  if(n.length>255 || /[\\/\0]/.test(n)) return null;
+  return n;
+}
+async function assertParentAccess(db, parentId, req) {
+  if(!parentId) return true;
+  const id=oid(parentId); if(!id) throw Object.assign(new Error('Invalid parent folder'),{status:400});
+  const f=await db.collection('folders').findOne({_id:id});
+  if(!f) throw Object.assign(new Error('Parent folder not found'),{status:404});
+  if((f.password||f.passwordHash) && !folderUnlocked(req,parentId)) throw Object.assign(new Error('Folder is locked'),{status:403});
+  return true;
+}
+app.patch('/api/folders/:id', fileAuth, async (q,s)=>{try{
+ const db=await mongo(), id=oid(q.params.id); if(!id)return s.status(400).json({error:'Invalid folder id'});
+ const f=await db.collection('folders').findOne({_id:id}); if(!f)return s.status(404).json({error:'Folder not found'});
+ if((f.password||f.passwordHash)&&!folderUnlocked(q,id.toString()))return s.status(403).json({error:'Folder is locked'});
+ const name=cleanName(q.body?.name); if(!name)return s.status(400).json({error:'Invalid folder name'});
+ if(await db.collection('folders').findOne({_id:{$ne:id},name,parentId:f.parentId||null}))return s.status(409).json({error:'An item with this name already exists here'});
+ await db.collection('folders').updateOne({_id:id},{$set:{name,updatedAt:new Date()}}); s.json({ok:true,name});
+}catch(e){s.status(e.status||500).json({error:e.message});}});
+app.patch('/api/files/:id', fileAuth, async (q,s)=>{try{
+ const db=await mongo(), id=oid(q.params.id); if(!id)return s.status(400).json({error:'Invalid file id'});
+ const f=await db.collection('uploads.files').findOne({_id:id}); if(!f)return s.status(404).json({error:'File not found'});
+ const fid=f.metadata?.folderId||null; if(fid){const fo=await db.collection('folders').findOne({_id:oid(fid)});if((fo?.password||fo?.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).json({error:'Folder is locked'});}
+ const name=cleanName(q.body?.name); if(!name)return s.status(400).json({error:'Invalid file name'});
+ const exists=await db.collection('uploads.files').findOne({_id:{$ne:id},filename:name,'metadata.folderId':fid}); if(exists)return s.status(409).json({error:'An item with this name already exists here'});
+ await db.collection('uploads.files').updateOne({_id:id},{$set:{filename:name,updatedAt:new Date()}}); s.json({ok:true,name});
+}catch(e){s.status(e.status||500).json({error:e.message});}});
+app.post('/api/items/move', fileAuth, async(q,s)=>{try{
+ const db=await mongo(), item=String(q.body?.itemId||''), type=String(q.body?.type||''), parentId=q.body?.parentId||null;
+ await assertParentAccess(db,parentId,q);
+ if(type==='folder'){
+  const id=oid(item); const f=id&&await db.collection('folders').findOne({_id:id}); if(!f)return s.status(404).json({error:'Folder not found'});
+  if(parentId && String(parentId)===String(item))return s.status(400).json({error:'Cannot move a folder into itself'});
+  if(await db.collection('folders').findOne({_id:{$ne:id},name:f.name,parentId:parentId?oid(parentId):null}))return s.status(409).json({error:'An item with this name already exists here'});
+  await db.collection('folders').updateOne({_id:id},{$set:{parentId:parentId?oid(parentId):null,updatedAt:new Date()}});
+ } else {
+  const id=oid(item), f=id&&await db.collection('uploads.files').findOne({_id:id}); if(!f)return s.status(404).json({error:'File not found'});
+  const old=f.metadata?.folderId||null;
+  if(old && String(old)===String(parentId))return s.json({ok:true});
+  if(await db.collection('uploads.files').findOne({_id:{$ne:id},filename:f.filename,'metadata.folderId':parentId||null}))return s.status(409).json({error:'An item with this name already exists here'});
+  await db.collection('uploads.files').updateOne({_id:id},{$set:{'metadata.folderId':parentId||null,updatedAt:new Date()}});
+ }
+ s.json({ok:true});
+}catch(e){s.status(e.status||500).json({error:e.message});}});
+app.get('/api/search', fileAuth, async(q,s)=>{try{
+ const db=await mongo(), term=String(q.query.q||'').trim(); if(!term)return s.json({folders:[],files:[]});
+ const re=new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+ const folders=await db.collection('folders').find({name:re}).limit(100).toArray();
+ const files=await db.collection('uploads.files').find({filename:re}).limit(100).project({filename:1,length:1,uploadDate:1,contentType:1,metadata:1}).toArray();
+ s.json({folders:folders.map(f=>({id:f._id.toString(),name:f.name,parentId:f.parentId?f.parentId.toString():null,protected:!!(f.password||f.passwordHash),date:f.createdAt})),files:files.map(f=>({id:f._id.toString(),name:f.filename,size:f.length,date:f.uploadDate,type:f.contentType||'application/octet-stream',folderId:f.metadata?.folderId||null}))});
+}catch(e){s.status(500).json({error:e.message});}});
+
 /* Files */
 app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo(), fid = q.query.folderId || null; if (fid) { const id = oid(fid); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const filter = fid ? { 'metadata.folderId': fid } : { $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }; const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate, type: f.contentType || 'application/octet-stream' }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 
@@ -99,6 +205,18 @@ const chunkUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 4 * 1024 * 1024, files: 1, fields: 30 }
 });
+
+app.post('/api/files/chunk/finalize', fileAuth, async (q,s)=>{try{
+ const uploadId=String(q.body?.uploadId||''); if(!uploadId)return s.status(400).json({error:'Upload id required'});
+ const db=await mongo(), chunks=db.collection('upload_chunks'); const docs=await chunks.find({uploadId}).sort({index:1}).toArray();
+ const total=Number(q.body?.total||docs[0]?.total||0); if(!total || docs.length!==total)return s.status(409).json({error:'Upload is incomplete',received:docs.length,total});
+ const name=String(q.body?.name||docs[0]?.name||'file').slice(0,1024), mime=String(q.body?.mime||docs[0]?.mime||'application/octet-stream').slice(0,200), fid=q.body?.folderId||docs[0]?.folderId||null;
+ if(fid){const id=oid(fid),f=id&&await db.collection('folders').findOne({_id:id});if(!f)return s.status(404).json({error:'Folder not found'});if((f.password||f.passwordHash)&&!folderUnlocked(q,fid))return s.status(403).json({error:'Folder is locked'});}
+ const st=new GridFSBucket(db,{bucketName:'uploads'}).openUploadStream(name,{contentType:mime,metadata:{uploadedBy:'direct-links',source:'mongodb-gridfs',folderId:fid}});
+ for(const d of docs){const b=Buffer.isBuffer(d.data)?d.data:(d.data?.buffer?Buffer.from(d.data.buffer):Buffer.from(d.data));if(!st.write(b))await new Promise(r=>st.once('drain',r));}
+ await new Promise((resolve,reject)=>{st.on('finish',resolve);st.on('error',reject);st.end();});
+ await chunks.deleteMany({uploadId}); s.json({ok:true,complete:true,size:Number(q.body?.size||docs.reduce((n,d)=>n+Number(d.data?.length||0),0)),name});
+}catch(e){s.status(500).json({error:e.message||'Finalize failed'});}});
 
 app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s) => {
   try {
@@ -131,21 +249,7 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
       { upsert: true }
     );
 
-    if (index !== total - 1) return s.json({ ok: true, index, complete: false });
-
-    const docs = await chunks.find({ uploadId }).sort({ index: 1 }).toArray();
-    if (docs.length !== total) return s.json({ ok: true, complete: false, received: docs.length });
-
-    const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(name, {
-      contentType: mime,
-      metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid }
-    });
-    for (const d of docs) { const chunkData = Buffer.isBuffer(d.data) ? d.data : (d.data?.buffer ? Buffer.from(d.data.buffer) : Buffer.from(d.data)); st.write(chunkData); }
-    await new Promise((resolve, reject) => {
-      st.on('finish', resolve); st.on('error', reject); st.end();
-    });
-    await chunks.deleteMany({ uploadId });
-    s.json({ ok: true, complete: true, size, name });
+    s.json({ ok: true, index, complete: false });
   } catch (e) {
     s.status(500).json({ error: e.message || 'Upload failed' });
   }

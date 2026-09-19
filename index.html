@@ -1,84 +1,1259 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>WebOS - Windows Style Desktop</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0} :root{--a:#0078d4;--tb:rgba(20,25,32,.94);--w:#fff;--w2:#f3f3f3;--t:#111}body{width:100vw;height:100vh;overflow:hidden;font-family:"Segoe UI",Arial,sans-serif;background:#000;color:var(--t);user-select:none}button,input,textarea{font-family:inherit}button{cursor:pointer}#desktop{position:absolute;inset:0 0 48px;background:linear-gradient(#0001,#0003),url("https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=2400&q=90") center/cover}.desktop-icons{padding:12px;display:flex;flex-direction:column;gap:5px;width:100px}.desktop-icon{width:78px;min-height:78px;color:#fff;text-align:center;font-size:12px;padding:5px;border-radius:5px;text-shadow:0 1px 3px #000;cursor:pointer}.desktop-icon:hover,.desktop-icon.selected{background:#fff3}.desktop-icon .icon{font-size:32px;display:block;margin-bottom:4px}.window{position:absolute;width:720px;height:500px;max-width:100vw;max-height:calc(100vh - 48px);background:var(--w);color:var(--t);border-radius:7px;box-shadow:0 15px 60px #0007;overflow:hidden;display:none;z-index:100}.titlebar{height:38px;background:var(--w2);display:flex;align-items:center;padding-left:12px;cursor:move;touch-action:none}.title-icon{font-size:18px;margin-right:8px}.title-text{flex:1;font-size:13px}.window-buttons{height:100%;display:flex}.win-btn{width:45px;height:100%;display:flex;justify-content:center;align-items:center;cursor:pointer}.win-btn:hover{background:#ddd}.win-btn.close:hover{background:#e81123;color:#fff}.window-body{height:calc(100% - 38px);overflow:auto}.window-body.pad{padding:16px}.toolbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px;border-bottom:1px solid #ddd}.toolbar button,.settings-button,.notepad-menu button{border:1px solid #ccc;background:#fff;padding:7px 10px}.explorer{display:flex;height:100%}.sidebar{width:180px;background:var(--w2);border-right:1px solid #ddd;padding:10px;overflow:auto}.side-item{padding:9px;border-radius:4px;cursor:pointer}.side-item:hover{background:#dceeff}.files-area{flex:1;padding:10px;overflow:auto}.address-bar{display:flex;gap:6px;margin-bottom:8px}.address-bar input{flex:1;height:34px;border:1px solid #ccc;padding:0 10px}.file-grid{display:grid;grid-template-columns:repeat(auto-fill,100px);gap:10px}.file{text-align:center;padding:10px;border-radius:5px;min-height:90px;cursor:pointer}.file:hover,.file.selected{background:#e5f3ff}.file-icon{font-size:40px;display:block}.file-name{font-size:12px;word-break:break-word}.notepad{height:100%;display:flex;flex-direction:column}.notepad-menu{height:40px;display:flex;gap:5px;padding:4px;border-bottom:1px solid #ddd}.notepad textarea{flex:1;border:0;outline:0;resize:none;padding:12px;font:15px Consolas,monospace;user-select:text}.calculator{padding:20px;background:#f4f4f4;height:100%}.calc-display{width:100%;height:60px;font-size:28px;text-align:right;padding:10px;margin-bottom:12px;border:1px solid #ccc}.calc-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.calc-buttons button{height:54px;border:1px solid #ddd;background:#fff;font-size:18px}.settings{display:flex;height:100%}.settings-nav{width:210px;background:var(--w2);padding:10px}.settings-item{padding:11px;cursor:pointer;border-radius:4px}.settings-item:hover{background:#ddd}.settings-content{padding:25px;flex:1;overflow:auto}.card{border:1px solid #ddd;border-radius:7px;padding:18px;margin-top:15px}.switch{width:45px;height:24px;background:#aaa;border-radius:20px;float:right}.switch.on{background:#0783d8}.switch:after{content:"";display:block;width:20px;height:20px;background:#fff;border-radius:50%;margin:2px}.switch.on:after{transform:translateX(21px)}#taskbar{position:absolute;left:0;right:0;bottom:0;height:48px;background:var(--tb);backdrop-filter:blur(18px);display:flex;align-items:center;z-index:10000;color:#fff}.start-btn,.search-btn,.task-icon{height:48px;min-width:48px;display:flex;align-items:center;justify-content:center;cursor:pointer}.start-btn:hover,.search-btn:hover,.task-icon:hover{background:#fff2}.start-btn{font-size:24px}.search-btn{width:230px;justify-content:flex-start;padding:0 15px;gap:10px;font-size:14px;color:#ddd}.running-apps{display:flex;height:100%}.task-icon{font-size:21px;border-bottom:2px solid transparent}.task-icon.active{border-bottom-color:#fff;background:#fff1}.system-tray{margin-left:auto;height:100%;display:flex;align-items:center;gap:12px;padding:0 12px;font-size:14px}.clock{text-align:right;line-height:16px;font-size:12px}.start-menu{position:absolute;left:8px;bottom:56px;width:650px;height:570px;max-width:calc(100vw - 16px);background:#191e24f7;color:#fff;border:1px solid #fff2;box-shadow:0 15px 50px #0008;display:none;z-index:9000}.start-search{padding:18px}.start-search input{width:100%;height:40px;padding:0 14px;border:0}.start-content{display:flex;height:430px;overflow:hidden}.start-left{width:230px;padding:15px;overflow:auto}.start-app{padding:9px;display:flex;gap:12px;align-items:center;border-radius:4px;cursor:pointer}.start-app:hover{background:#fff2}.start-right{flex:1;padding:15px}.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tile{min-height:85px;background:#0078d4bf;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer}.tile:hover{background:#1689df}.tile-icon{font-size:28px;margin-bottom:7px}.start-bottom{position:absolute;left:0;right:0;bottom:0;height:65px;border-top:1px solid #fff2;display:flex;align-items:center;padding:0 20px}.profile{display:flex;gap:10px;align-items:center}.avatar{width:34px;height:34px;background:#0783d8;border-radius:50%;display:flex;align-items:center;justify-content:center}.power{margin-left:auto;font-size:22px;cursor:pointer}#notification{position:absolute;right:15px;bottom:60px;width:320px;max-width:calc(100vw - 30px);background:#1e1ef7;color:#fff;padding:18px;border-radius:7px;display:none;z-index:20000}#notification button{margin-top:12px;padding:7px 14px;border:0;background:#0783d8;color:#fff}#contextMenu{position:absolute;width:220px;background:#fff;color:#222;box-shadow:0 10px 35px #0005;border:1px solid #ddd;display:none;z-index:30000;padding:5px 0}.context-item{padding:9px 15px;cursor:pointer}.context-item:hover{background:#e5f3ff}#modal,#webModal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:40000}.modal-box{width:420px;max-width:92vw;max-height:90vh;overflow:auto;background:#fff;color:#111;border-radius:8px;box-shadow:0 20px 60px #0008}.modal-title{padding:14px;background:#f4f4f4;font-weight:600}.modal-content{padding:18px}.modal-content input,.modal-content textarea,.modal-content select{width:100%;height:40px;padding:0 10px;border:1px solid #bbb}.modal-buttons{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #ddd}.modal-buttons button{padding:8px 14px;border:1px solid #ccc;background:#fff}.primary{background:#0078d4!important;color:#fff!important;border-color:#0078d4!important}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px}.admin-section{border:1px solid #ddd;border-radius:7px;padding:14px}.admin-section h3{margin-bottom:10px}.admin-input{width:100%;height:36px;padding:0 9px;border:1px solid #bbb;margin:4px 0 8px}.link-row{display:grid;grid-template-columns:45px 1fr 1.3fr 1fr 65px;gap:6px;align-items:center;margin-bottom:7px}.link-row input{height:34px;border:1px solid #bbb;padding:0 7px;min-width:0}.drive{height:100%;display:flex;flex-direction:column}..drivebar{display:flex;gap:6px;flex-wrap:wrap;padding:9px;border-bottom:1px solid #ddd}.drivebar button{padding:7px 10px;border:1px solid #bbb;background:#fff}.drive-path{padding:8px 12px;background:#f7f7f7;border-bottom:1px solid #ddd}.drive-grid{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,130px);gap:12px;overflow:auto}.drive-item{border:1px solid #ddd;border-radius:7px;padding:12px;text-align:center;cursor:pointer}.drive-item:hover{background:#eaf5ff}.drive-icon{font-size:42px}.drive-name{font-size:12px;margin-top:6px;word-break:break-word}.progress{height:7px;background:#ddd;border-radius:5px;overflow:hidden;margin-top:5px}.progress i{display:block;height:100%;background:#0078d4;width:0}.link-cards{padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.link-card{border:1px solid #ddd;border-radius:8px;padding:15px;background:#fafafa}.link-card button{margin-top:10px;width:100%;padding:7px;border:1px solid #bbb;background:#fff}.link-icon{font-size:28px}.muted{color:#777;font-size:12px}.dark{--w:#202020;--w2:#2b2b2b;--t:#eee}.dark .toolbar button,.dark .settings-button,.dark .notepad-menu button,.dark .calc-buttons button,.dark .drivebar button{background:#303030;color:#fff;border-color:#555}.dark .sidebar,.dark .settings-nav,.dark .calculator{background:#252525}.dark .titlebar{background:#292929}.dark .address-bar input,.dark .calc-display{background:#111;color:#fff;border-color:#555}.dark .admin-section,.dark .drive-item,.dark .link-card{border-color:#555}.dark .link-card{background:#292929}.dark .drive-path{background:#252525}.dark #modal .modal-box,.dark #webModal .modal-box{background:#202020;color:#eee}.dark .modal-title{background:#292929}.dark .modal-content input{background:#111;color:#fff;border-color:#555}@media(max-width:800px){.window{width:96vw!important;height:calc(100vh - 65px)!important;left:2vw!important;top:8px!important}.search-btn{width:55px}.search-btn span{display:none}.sidebar{width:125px}.start-menu{width:96vw;height:80vh;left:2vw}.tiles{grid-template-columns:repeat(2,1fr)}.admin-grid{grid-template-columns:1fr}.link-row{grid-template-columns:35px 1fr 1fr}.link-row input:nth-child(4){display:none}}@media(max-width:500px){.start-content{flex-direction:column}.start-left{width:100%;height:160px}.settings{flex-direction:column}.settings-nav{width:100%;height:105px;display:flex;overflow:auto}.settings-content{padding:15px}.sidebar{width:105px}.drive-grid{grid-template-columns:repeat(auto-fill,90px)}.link-cards{grid-template-columns:1fr 1fr}}
+<html lang="en">
 
-.drive-item.selected{outline:2px solid #4f8cff;background:rgba(79,140,255,.12)}.drivebar button,.drivebar select{cursor:pointer}.drive-path{display:flex;gap:10px;align-items:center;padding:8px 12px}.drive-path input{flex:1;min-width:120px;padding:8px 10px;border-radius:8px;border:1px solid #bbb}
-</style></head><body>
-<div id="desktop"><div class="desktop-icons">
-<div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">💻</span>This PC</div>
-<div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">📁</span>Files</div>
-<div class="desktop-icon" ondblclick="openWindow('notepadWindow')"><span class="icon">📝</span>Notepad</div>
-<div class="desktop-icon" ondblclick="openWindow('calculatorWindow')"><span class="icon">🧮</span>Calculator</div>
-<div class="desktop-icon" ondblclick="openWindow('settingsWindow')"><span class="icon">⚙️</span>Settings</div>
-<div class="desktop-icon" ondblclick="openWindow('adminWindow')"><span class="icon">🛠️</span>Main Admin</div>
-<div class="desktop-icon" ondblclick="openWindow('linksWindow')"><span class="icon">🔗</span>My Links</div>
-<div class="desktop-icon" ondblclick="openWindow('driveWindow')"><span class="icon">☁️</span>Shared Drive</div>
-<div class="desktop-icon" ondblclick="openRecycleBin()"><span class="icon">🗑️</span>Recycle Bin</div>
-</div></div>
-<div class="start-menu" id="startMenu"><div class="start-search"><input id="startSearch" placeholder="Type here to search" oninput="searchApps(this.value)"></div><div class="start-content"><div class="start-left"><b style="color:#aaa;font-size:13px">APPS</b>
-<div class="start-app" data-name="file explorer" onclick="openWindow('explorerWindow')">📁 <span>File Explorer</span></div><div class="start-app" data-name="notepad" onclick="openWindow('notepadWindow')">📝 <span>Notepad</span></div><div class="start-app" data-name="calculator" onclick="openWindow('calculatorWindow')">🧮 <span>Calculator</span></div><div class="start-app" data-name="settings" onclick="openWindow('settingsWindow')">⚙️ <span>Settings</span></div><div class="start-app" data-name="main admin" onclick="openWindow('adminWindow')">🛠️ <span>Main Admin</span></div><div class="start-app" data-name="links" onclick="openWindow('linksWindow')">🔗 <span>My Links</span></div><div class="start-app" data-name="drive file sharing" onclick="openWindow('driveWindow')">☁️ <span>Shared Drive</span></div><div class="start-app" data-name="recycle bin" onclick="openRecycleBin()">🗑️ <span>Recycle Bin</span></div></div><div class="start-right"><b style="color:#aaa;font-size:13px">PINNED</b><div class="tiles"><div class="tile" onclick="openWindow('explorerWindow')"><span class="tile-icon">📁</span>Files</div><div class="tile" onclick="openWindow('notepadWindow')"><span class="tile-icon">📝</span>Notepad</div><div class="tile" onclick="openWindow('calculatorWindow')"><span class="tile-icon">🧮</span>Calculator</div><div class="tile" onclick="openWindow('settingsWindow')"><span class="tile-icon">⚙️</span>Settings</div><div class="tile" onclick="openWindow('linksWindow')"><span class="tile-icon">🔗</span>Links</div><div class="tile" onclick="openWindow('driveWindow')"><span class="tile-icon">☁️</span>Drive</div><div class="tile" onclick="openBrowser()"><span class="tile-icon">🌐</span>Browser</div><div class="tile" onclick="openPhotos()"><span class="tile-icon">🖼️</span>Photos</div></div></div></div><div class="start-bottom"><div class="profile"><div class="avatar">A</div><span>Administrator</span></div><div class="power" onclick="powerMenu()">⏻</div></div></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>WebOS - Windows Style Desktop</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-<!-- Explorer --><div class="window" id="explorerWindow" style="left:110px;top:60px"><div class="titlebar"><span class="title-icon">📁</span><span class="title-text">File Explorer</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('explorerWindow')">−</div><div class="win-btn" onclick="maximizeWindow('explorerWindow')">□</div><div class="win-btn close" onclick="closeWindow('explorerWindow')">×</div></div></div><div class="window-body"><div class="explorer"><div class="sidebar"><div class="side-item" onclick="navigateFolder('')">⭐ Quick Access</div><div class="side-item" onclick="navigateFolder('Desktop')">🖥️ Desktop</div><div class="side-item" onclick="navigateFolder('Documents')">📄 Documents</div><div class="side-item" onclick="navigateFolder('Downloads')">⬇️ Downloads</div><div class="side-item" onclick="navigateFolder('Pictures')">🖼️ Pictures</div><div class="side-item" onclick="navigateFolder('Videos')">🎬 Videos</div><div class="side-item" onclick="navigateFolder('Music')">🎵 Music</div><div class="side-item" onclick="openWindow('driveWindow')">☁️ Shared Drive</div><div class="side-item" onclick="openRecycleBin()">🗑️ Recycle Bin</div></div><div class="files-area"><div class="address-bar"><button class="settings-button" onclick="goBackFolder()">←</button><input id="currentPath" value="This PC" readonly></div><div class="toolbar"><button onclick="createFolder()">📁 New Folder</button><button onclick="createTextFile()">📄 New Text</button><button onclick="triggerUpload()">⬆ Upload</button><button onclick="renameSelected()">✏️ Rename</button><button onclick="copySelected()">📋 Copy</button><button onclick="cutSelected()">✂️ Cut</button><button onclick="pasteItem()">📌 Paste</button><button onclick="deleteSelected()">🗑️ Delete</button><button onclick="renderFiles()">🔄 Refresh</button></div><input id="fileInput" type="file" multiple hidden onchange="handleUpload(event)"><div class="file-grid" id="fileGrid"></div></div></div></div></div>
-<!-- Notepad --><div class="window" id="notepadWindow" style="left:170px;top:90px"><div class="titlebar"><span class="title-icon">📝</span><span class="title-text">Notepad</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('notepadWindow')">−</div><div class="win-btn" onclick="maximizeWindow('notepadWindow')">□</div><div class="win-btn close" onclick="closeWindow('notepadWindow')">×</div></div></div><div class="window-body"><div class="notepad"><div class="notepad-menu"><button onclick="newNote()">New</button><button onclick="openSavedNotes()">Open</button><button onclick="saveNote()">Save</button><button onclick="downloadNote()">Save As</button><button onclick="selectAllNote()">Select All</button></div><textarea id="notepadText" spellcheck="false" placeholder="Type something..."></textarea></div></div></div>
-<!-- Calculator --><div class="window" id="calculatorWindow" style="left:280px;top:90px;width:360px;height:510px"><div class="titlebar"><span class="title-icon">🧮</span><span class="title-text">Calculator</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('calculatorWindow')">−</div><div class="win-btn" onclick="maximizeWindow('calculatorWindow')">□</div><div class="win-btn close" onclick="closeWindow('calculatorWindow')">×</div></div></div><div class="window-body"><div class="calculator"><input class="calc-display" id="calcDisplay" readonly><div class="calc-buttons"><button onclick="clearCalc()">C</button><button onclick="calcInput('/')">÷</button><button onclick="calcInput('*')">×</button><button onclick="calcBack()">⌫</button><button onclick="calcInput('7')">7</button><button onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button onclick="calcInput('-')">−</button><button onclick="calcInput('4')">4</button><button onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button onclick="calcInput('+')">+</button><button onclick="calcInput('1')">1</button><button onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button onclick="calculate()">=</button><button onclick="calcInput('0')">0</button><button onclick="calcInput('.')">.</button><button onclick="calcInput('(')">(</button><button onclick="calcInput(')')">)</button></div></div></div></div>
-<!-- Settings --><div class="window" id="settingsWindow" style="left:150px;top:55px"><div class="titlebar"><span class="title-icon">⚙️</span><span class="title-text">Settings</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('settingsWindow')">−</div><div class="win-btn" onclick="maximizeWindow('settingsWindow')">□</div><div class="win-btn close" onclick="closeWindow('settingsWindow')">×</div></div></div><div class="window-body"><div class="settings"><div class="settings-nav"><div class="settings-item" onclick="settingsPage('system')">🖥️ System</div><div class="settings-item" onclick="settingsPage('personalization')">🎨 Personalization</div><div class="settings-item" onclick="settingsPage('apps')">📱 Apps</div><div class="settings-item" onclick="settingsPage('account')">👤 Account</div><div class="settings-item" onclick="settingsPage('network')">🌐 Network</div><div class="settings-item" onclick="settingsPage('privacy')">🔒 Privacy</div><div class="settings-item" onclick="settingsPage('security')">🛡️ Security</div><div class="settings-item" onclick="settingsPage('about')">ℹ️ About</div></div><div class="settings-content" id="settingsContent"></div></div></div></div>
-<!-- Admin --><div class="window" id="adminWindow" style="left:70px;top:45px;width:900px;height:600px"><div class="titlebar"><span class="title-icon">🛠️</span><span class="title-text">Main Admin</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('adminWindow')">−</div><div class="win-btn" onclick="maximizeWindow('adminWindow')">□</div><div class="win-btn close" onclick="closeWindow('adminWindow')">×</div></div></div><div class="window-body pad" id="adminBody"><div class="card"><h2>Main Admin Login</h2><p class="muted">Manage all passwords, project links and folder passwords.</p><input class="admin-input" id="adminPasswordInput" type="password" placeholder="Admin password"><button class="primary" style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button></div></div></div>
-<!-- Links --><div class="window" id="linksWindow" style="left:100px;top:65px;width:850px;height:560px"><div class="titlebar"><span class="title-icon">🔗</span><span class="title-text">My Links</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('linksWindow')">−</div><div class="win-btn" onclick="maximizeWindow('linksWindow')">□</div><div class="win-btn close" onclick="closeWindow('linksWindow')">×</div></div></div><div class="window-body"><div class="toolbar"><input id="linksSearch" oninput="filterWebosLinks(this.value)" placeholder="Search links..." style="height:34px;flex:1;padding:0 10px;border:1px solid #bbb"><button onclick="loadWebosLinks()">🔄 Refresh</button></div><div id="linksGrid" class="link-cards"></div></div></div>
-<!-- Drive --><div class="window" id="driveWindow" style="left:80px;top:45px;width:920px;height:600px"><div class="titlebar"><span class="title-icon">☁️</span><span class="title-text">Shared Drive</span><div class="window-buttons"><div class="win-btn" onclick="minimizeWindow('driveWindow')">−</div><div class="win-btn" onclick="maximizeWindow('driveWindow')">□</div><div class="win-btn close" onclick="closeWindow('driveWindow')">×</div></div></div><div class="window-body"><div class="drive" id="driveBody"><div class="card" style="margin:15px"><h2>File Sharing</h2><p class="muted">Secure cloud Drive using the existing MongoDB/GridFS backend.</p><input class="admin-input" id="drivePasswordInput" type="password" placeholder="File sharing password"><button class="primary" style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button></div></div></div></div>
-<div id="taskbar"><div class="start-btn" onclick="toggleStart()">⊞</div><div class="search-btn" onclick="openStartSearch()">🔍 <span>Type here to search</span></div><div class="running-apps" id="runningApps"></div><div class="system-tray"><span>🌐</span><span>🔊</span><span>🔋</span><div class="clock"><div id="time">00:00</div><div id="date">00/00/0000</div></div></div></div>
-<div id="notification"><h3 id="notificationTitle"></h3><div id="notificationText"></div><button onclick="closeNotification()">Close</button></div>
-<div id="contextMenu"><div class="context-item" onclick="location.reload()">🔄 Refresh</div><div class="context-item" onclick="openWindow('explorerWindow');createFolder()">📁 New Folder</div><div class="context-item" onclick="openWindow('explorerWindow');createTextFile()">📄 New Text Document</div><div class="context-item" onclick="openWindow('settingsWindow')">⚙️ Display Settings</div><div class="context-item" onclick="openWindow('adminWindow')">🛠️ Main Admin</div></div>
-<div id="modal"><div class="modal-box"><div class="modal-title" id="modalTitle">Input</div><div class="modal-content"><input id="modalInput"></div><div class="modal-buttons"><button onclick="closeModal()">Cancel</button><button class="primary" id="modalOK">OK</button></div></div></div>
-<div id="webModal"><div class="modal-box"><div class="modal-title" id="webModalTitle">Input</div><div class="modal-content" id="webModalContent"></div><div class="modal-buttons"><button onclick="closeWebModal()">Cancel</button><button class="primary" id="webModalOK">OK</button></div></div></div>
-<script>
-const DB_KEY='webos_files_v1',TRASH_KEY='webos_trash_v1',NOTES_KEY='webos_notes_v1',SETTINGS_KEY='webos_settings_v1';let files=JSON.parse(localStorage.getItem(DB_KEY)||'null'),trash=JSON.parse(localStorage.getItem(TRASH_KEY)||'[]'),settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'),currentFolder='',selectedFile=null,clipboard=null,z=100;
-const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8),saveFiles=()=>localStorage.setItem(DB_KEY,JSON.stringify(files)),esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');if(!files){files=['Documents','Downloads','Pictures','Videos','Music','Desktop'].map(name=>({id:id(),name,type:'folder',parent:''}));saveFiles()}
-const apps={explorerWindow:{name:'File Explorer',icon:'📁'},notepadWindow:{name:'Notepad',icon:'📝'},calculatorWindow:{name:'Calculator',icon:'🧮'},settingsWindow:{name:'Settings',icon:'⚙️'},adminWindow:{name:'Main Admin',icon:'🛠️'},linksWindow:{name:'My Links',icon:'🔗'},driveWindow:{name:'Shared Drive',icon:'☁️'}};
-function openWindow(id){let w=document.getElementById(id);if(!w)return;w.style.display='block';w.classList.add('active');z++;w.style.zIndex=z;document.getElementById('startMenu').style.display='none';updateTask(id);if(id==='explorerWindow')renderFiles();if(id==='settingsWindow')settingsPage('system');if(id==='linksWindow')loadWebosLinks();if(id==='adminWindow')renderAdminLogin();if(id==='driveWindow')renderDriveLogin()}
-function closeWindow(id){let w=document.getElementById(id);if(w){w.style.display='none';w.classList.remove('active');document.getElementById('task-'+id)?.remove()}}function minimizeWindow(id){document.getElementById(id).style.display='none'}function maximizeWindow(id){let w=document.getElementById(id);if(w.dataset.max==='1'){w.style.cssText=w.dataset.restore;w.dataset.max='0'}else{w.dataset.restore=`left:${w.offsetLeft}px;top:${w.offsetTop}px;width:${w.offsetWidth}px;height:${w.offsetHeight}px`;w.style.left='0';w.style.top='0';w.style.width='100%';w.style.height='calc(100vh - 48px)';w.dataset.max='1'}}function updateTask(id){let c=document.getElementById('runningApps'),b=document.getElementById('task-'+id);if(!b){b=document.createElement('div');b.className='task-icon active';b.id='task-'+id;b.textContent=apps[id].icon;b.onclick=()=>{let w=document.getElementById(id);w.style.display=w.style.display==='none'?'block':'block';z++;w.style.zIndex=z};c.appendChild(b)}else b.classList.add('active')}
-function toggleStart(){let m=document.getElementById('startMenu');m.style.display=m.style.display==='block'?'none':'block'}function openStartSearch(){document.getElementById('startMenu').style.display='block';setTimeout(()=>document.getElementById('startSearch').focus(),30)}function searchApps(v){document.querySelectorAll('.start-app').forEach(x=>x.style.display=x.textContent.toLowerCase().includes(v.toLowerCase())?'flex':'none')}document.addEventListener('click',e=>{if(!e.target.closest('#startMenu,.start-btn,.search-btn'))document.getElementById('startMenu').style.display='none';if(!e.target.closest('#contextMenu'))document.getElementById('contextMenu').style.display='none'});
-function renderFiles(){let g=document.getElementById('fileGrid');g.innerHTML='';document.getElementById('currentPath').value=currentFolder?(files.find(f=>f.id===currentFolder)?.name||'Folder'):'This PC';let arr=files.filter(f=>f.parent===currentFolder);if(currentFolder){let b=document.createElement('div');b.className='file';b.innerHTML='<span class=file-icon>↩️</span><div class=file-name>..</div>';b.onclick=goBackFolder;g.appendChild(b)}if(!arr.length&&!currentFolder){g.innerHTML='<div class=muted style="padding:30px">This folder is empty</div>';return}arr.forEach(f=>{let e=document.createElement('div');e.className='file';e.innerHTML=`<span class=file-icon>${f.type==='folder'?'📁':'📄'}</span><div class=file-name>${esc(f.name)}</div>`;e.onclick=()=>{document.querySelectorAll('.file.selected').forEach(x=>x.classList.remove('selected'));e.classList.add('selected');selectedFile=f.id};e.ondblclick=()=>f.type==='folder'?(currentFolder=f.id,selectedFile=null,renderFiles()):openFile(f);g.appendChild(e)})}function navigateFolder(n){let f=files.find(x=>x.name===n&&x.type==='folder'&&x.parent==='');currentFolder=n?f?.id||'':'';renderFiles()}function goBackFolder(){if(!currentFolder)return renderFiles();let f=files.find(x=>x.id===currentFolder);currentFolder=f?.parent||'';renderFiles()}
-function askInput(t,l,v,cb){document.getElementById('modalTitle').textContent=t;document.getElementById('modalInput').placeholder=l;document.getElementById('modalInput').value=v||'';document.getElementById('modal').style.display='flex';window.modalCB=cb;setTimeout(()=>document.getElementById('modalInput').focus(),20)}function closeModal(){document.getElementById('modal').style.display='none';window.modalCB=null}document.getElementById('modalOK').onclick=()=>{let v=document.getElementById('modalInput').value.trim(),cb=window.modalCB;closeModal();cb&&cb(v)};document.getElementById('modalInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('modalOK').click();if(e.key==='Escape')closeModal()};
-function createFolder(){askInput('New Folder','Folder name','New Folder',n=>{if(!n)return;if(files.some(f=>f.parent===currentFolder&&f.name.toLowerCase()===n.toLowerCase()))return showNotification('Error','Folder already exists');files.push({id:id(),name:n,type:'folder',parent:currentFolder});saveFiles();renderFiles()})}function createTextFile(){askInput('New Text Document','File name','New Text Document.txt',n=>{if(!n)return;files.push({id:id(),name:n.endsWith('.txt')?n:n+'.txt',type:'text',parent:currentFolder,content:''});saveFiles();renderFiles()})}function triggerUpload(){document.getElementById('fileInput').click()}function handleUpload(e){[...e.target.files].forEach(f=>files.push({id:id(),name:f.name,type:'upload',parent:currentFolder,size:f.size}));saveFiles();renderFiles();e.target.value='';showNotification('Upload Complete',e.target.files?.length+' file(s) added.')}function openFile(f){if(f.type==='text'){openWindow('notepadWindow');notepadText.value=f.content||'';notepadText.dataset.fileId=f.id}else showNotification(f.name,'Stored in browser workspace.')}function renameSelected(){let f=files.find(x=>x.id===selectedFile);if(!f)return showNotification('Rename','Select a file first.');askInput('Rename','New name',f.name,n=>{if(n){f.name=n;saveFiles();renderFiles()}})}function copySelected(){let f=files.find(x=>x.id===selectedFile);if(f){clipboard={id:f.id,mode:'copy'};showNotification('Copied',f.name)}}function cutSelected(){let f=files.find(x=>x.id===selectedFile);if(f){clipboard={id:f.id,mode:'cut'};showNotification('Cut',f.name)}}function pasteItem(){if(!clipboard)return;let f=files.find(x=>x.id===clipboard.id);if(!f)return;if(clipboard.mode==='copy')files.push({...f,id:id(),name:f.name+' - Copy',parent:currentFolder});else{f.parent=currentFolder;clipboard=null}saveFiles();renderFiles()}function deleteSelected(){let i=files.findIndex(x=>x.id===selectedFile);if(i<0)return;trash.push({...files[i],deletedAt:new Date().toISOString()});files.splice(i,1);localStorage.setItem(TRASH_KEY,JSON.stringify(trash));saveFiles();selectedFile=null;renderFiles();showNotification('Recycle Bin','Moved to Recycle Bin')}function openRecycleBin(){if(!trash.length)return showNotification('Recycle Bin','Recycle Bin is empty.');if(confirm('Restore the latest deleted item?')){files.push(trash.pop());saveFiles();localStorage.setItem(TRASH_KEY,JSON.stringify(trash));renderFiles()}else{trash=[];localStorage.setItem(TRASH_KEY,'[]');showNotification('Recycle Bin','Emptied.')}}
-function newNote(){notepadText.value='';notepadText.dataset.fileId=''}function saveNote(){let t=notepadText.value,fid=notepadText.dataset.fileId;if(fid){let f=files.find(x=>x.id===fid);if(f){f.content=t;saveFiles();return showNotification('Notepad','Saved.')}}askInput('Save Note','File name','Note.txt',n=>{if(!n)return;let f={id:id(),name:n.endsWith('.txt')?n:n+'.txt',type:'text',parent:currentFolder,content:t};files.push(f);notepadText.dataset.fileId=f.id;saveFiles();showNotification('Notepad','Saved.')})}function openSavedNotes(){let a=files.filter(f=>f.type==='text');if(!a.length)return showNotification('Notepad','No notes.');let n=prompt(a.map((f,i)=>`${i+1}. ${f.name}`).join('\n')+'\n\nEnter number');let f=a[+n-1];if(f){notepadText.value=f.content||'';notepadText.dataset.fileId=f.id}}function downloadNote(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([notepadText.value],{type:'text/plain'}));a.download='Note.txt';a.click()}function selectAllNote(){notepadText.select()}
-function calcInput(v){if(calcDisplay.value==='Error')calcDisplay.value='';calcDisplay.value+=v}function clearCalc(){calcDisplay.value=''}function calcBack(){calcDisplay.value=calcDisplay.value.slice(0,-1)}function calculate(){try{if(!/^[0-9+\-*/.() ]+$/.test(calcDisplay.value))throw 0;calcDisplay.value=Function('return ('+calcDisplay.value+')')()}catch{calcDisplay.value='Error'}}
-function settingsPage(p){let c=document.getElementById('settingsContent');if(p==='personalization')c.innerHTML=`<h2>Personalization</h2><div class=card><h3>Dark Mode</h3><div class="switch ${document.body.classList.contains('dark')?'on':''}" onclick="toggleTheme()"></div></div>`;else c.innerHTML=`<h2>${p[0].toUpperCase()+p.slice(1)}</h2><div class=card><h3>WebOS</h3><p style="margin-top:10px">Windows-style WebOS is running. Cloud links, Admin and Shared Drive are connected to the existing backend.</p></div>`}function toggleTheme(){document.body.classList.toggle('dark');settings.dark=document.body.classList.contains('dark');localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings))}function openBrowser(){let u=prompt('Enter website URL','https://www.google.com');if(u)window.open(u.startsWith('http')?u:'https://'+u,'_blank')}function openPhotos(){document.getElementById('fileInput').accept='image/*';triggerUpload();document.getElementById('fileInput').accept=''}function powerMenu(){showNotification('WebOS','Lock option selected.')}function showNotification(t,x){notificationTitle.textContent=t;notificationText.textContent=x;notification.style.display='block';clearTimeout(window.nt);window.nt=setTimeout(closeNotification,5000)}function closeNotification(){notification.style.display='none'}
-desktop.addEventListener('contextmenu',e=>{e.preventDefault();contextMenu.style.left=Math.min(e.clientX,innerWidth-225)+'px';contextMenu.style.top=Math.min(e.clientY,innerHeight-200)+'px';contextMenu.style.display='block'});
+    :root {
+      --a: #0078d4;
+      --tb: rgba(20, 25, 32, .94);
+      --w: #fff;
+      --w2: #f3f3f3;
+      --t: #111
+    }
 
-/* WEBOS CLOUD INTEGRATION */
-let webosAdminToken=sessionStorage.getItem('webosAdminToken')||'',webosFileToken=sessionStorage.getItem('webosFileToken')||'',webosFolderToken=sessionStorage.getItem('webosFolderToken')||'',driveFolder=null,webosLinks=[];
-const api=(p,o={})=>fetch(p,o);const ah=()=>webosFileToken?{'Authorization':'Bearer '+webosFileToken}:{};const fh=()=>webosFolderToken?{'X-Folder-Token':webosFolderToken}:{};
-function renderAdminLogin(){document.getElementById('adminBody').innerHTML=`<div class=card><h2>Main Admin Login</h2><p class=muted>Manage passwords, all project links and folder passwords.</p><input class=admin-input id=adminPasswordInput type=password placeholder="Admin password"><button class=primary style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button></div>`}async function webosAdminLogin(){let p=document.getElementById('adminPasswordInput').value;let r=await api('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});let d=await r.json();if(!r.ok)return showNotification('Admin Login',d.error||'Wrong password');webosAdminToken=d.token;sessionStorage.setItem('webosAdminToken',webosAdminToken);loadAdminPanel()}async function loadAdminPanel(){let r=await api('/api/admin/passwords',{headers:{Authorization:'Bearer '+webosAdminToken}});let d=await r.json();if(!r.ok)return renderAdminLogin();webosLinks=d.links||[];document.getElementById('adminBody').innerHTML=`<div class=toolbar><button class=primary onclick="saveAdminPanel()">💾 Save All</button><button onclick="addAdminLinkRow()">➕ Add Link</button><button onclick="loadAdminPanel()">🔄 Reload</button></div><div class=admin-grid><div class=admin-section><h3>Passwords</h3><label>Main Page Password</label><input class=admin-input id=apPage value="${esc(d.pagePassword)}"><label>File Sharing Password</label><input class=admin-input id=apFile value="${esc(d.fileSharePassword)}"><label>Admin Password</label><input class=admin-input id=apAdmin value="${esc(d.adminPassword)}"><h3>Folder Passwords</h3><div id=folderPassList>${(d.folders||[]).map(f=>`<div style="margin:8px 0"><b>${esc(f.name)}</b><input class=admin-input data-folder-id="${f.id}" value="${esc(f.password||'')}" placeholder="Folder password"></div>`).join('')||'<span class=muted>No folders</span>'}</div></div><div class=admin-section style="grid-column:1/-1"><h3>All Project Links</h3><div class=link-row style="font-weight:bold"><span>Icon</span><span>Name</span><span>URL</span><span>Password</span><span>Delete</span></div><div id=adminLinks>${webosLinks.map((x,i)=>adminLinkRow(x,i)).join('')}</div></div></div>`}function adminLinkRow(x,i){return `<div class=link-row data-i="${i}"><input value="${esc(x.icon||'🔗')}" data-k=icon><input value="${esc(x.name||'')}" data-k=name><input value="${esc(x.url||'')}" data-k=url><input value="${esc(x.password||'')}" data-k=password><button onclick="this.closest('.link-row').remove()">🗑️</button></div>`}function addAdminLinkRow(){document.getElementById('adminLinks').insertAdjacentHTML('beforeend',adminLinkRow({icon:'🔗',name:'New Link',url:'https://',password:''},webosLinks.length))}async function saveAdminPanel(){let links=[...document.querySelectorAll('#adminLinks .link-row')].map(r=>{let o={};r.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.value.trim());o.protected=!!o.password;return o});let folders=[...document.querySelectorAll('[data-folder-id]')].map(i=>({id:i.dataset.folderId,password:i.value}));let body={pagePassword:apPage.value,fileSharePassword:apFile.value,adminPassword:apAdmin.value,links,folders};let r=await api('/api/admin/passwords',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+webosAdminToken},body:JSON.stringify(body)});let d=await r.json();if(!r.ok)return showNotification('Admin',d.error||'Save failed');showNotification('Admin','All settings saved.');webosLinks=links;loadWebosLinks()}
-async function loadWebosLinks(){let r=await api('/api/links');let d=await r.json();webosLinks=Array.isArray(d)?d:[];renderWebosLinks(webosLinks)}function renderWebosLinks(a){document.getElementById('linksGrid').innerHTML=a.map((x,i)=>`<div class=link-card><div class=link-icon>${esc(x.icon||'🔗')}</div><b>${esc(x.name)}</b><div class=muted style="margin-top:5px">${esc(x.url)}</div><button onclick="openProtectedWebosLink(${i})">Open</button></div>`).join('')||'<div class=muted>No links found.</div>'}function filterWebosLinks(v){renderWebosLinks(webosLinks.filter(x=>(x.name+' '+x.url).toLowerCase().includes(v.toLowerCase())))}async function openProtectedWebosLink(i){let x=webosLinks[i];if(!x)return;if(!x.protected)return window.open(x.url,'_blank');openWebModal('Link Password',`<p>Enter password for <b>${esc(x.name)}</b></p><input id=linkPwd type=password class=admin-input>`);webModalOK.onclick=async()=>{let r=await api('/api/link-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.id,password:linkPwd.value})});let d=await r.json();if(!r.ok)return showNotification('Link',d.error||'Wrong password');closeWebModal();window.open(d.url||x.url,'_blank')}}
-function renderDriveLogin(){document.getElementById('driveBody').innerHTML=`<div class=card style="margin:15px"><h2>File Sharing Drive</h2><p class=muted>Unlock the cloud file-sharing area.</p><input class=admin-input id=drivePasswordInput type=password placeholder="File sharing password"><button class=primary style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button></div>`}async function webosDriveLogin(){let p=document.getElementById('drivePasswordInput').value;let r=await api('/api/file-share-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});let d=await r.json();if(!r.ok)return showNotification('Drive',d.error||'Wrong password');webosFileToken=d.token;sessionStorage.setItem('webosFileToken',webosFileToken);driveFolder=null;showDrive()}async function showDrive(){document.getElementById('driveBody').innerHTML=`<div class=drive>
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #000;
+      color: var(--t);
+      user-select: none
+    }
+
+    button,
+    input,
+    textarea {
+      font-family: inherit
+    }
+
+    button {
+      cursor: pointer
+    }
+
+    #desktop {
+      position: absolute;
+      inset: 0 0 48px;
+      background: linear-gradient(#0001, #0003), url("https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=2400&q=90") center/cover
+    }
+
+    .desktop-icons {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100px
+    }
+
+    .desktop-icon {
+      width: 78px;
+      min-height: 78px;
+      color: #fff;
+      text-align: center;
+      font-size: 12px;
+      padding: 5px;
+      border-radius: 5px;
+      text-shadow: 0 1px 3px #000;
+      cursor: pointer
+    }
+
+    .desktop-icon:hover,
+    .desktop-icon.selected {
+      background: #fff3
+    }
+
+    .desktop-icon .icon {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .window {
+      position: absolute;
+      width: 720px;
+      height: 500px;
+      max-width: 100vw;
+      max-height: calc(100vh - 48px);
+      background: var(--w);
+      color: var(--t);
+      border-radius: 7px;
+      box-shadow: 0 15px 60px #0007;
+      overflow: hidden;
+      display: none;
+      z-index: 100
+    }
+
+    .titlebar {
+      height: 38px;
+      background: var(--w2);
+      display: flex;
+      align-items: center;
+      padding-left: 12px;
+      cursor: move;
+      touch-action: none
+    }
+
+    .title-icon {
+      font-size: 18px;
+      margin-right: 8px
+    }
+
+    .title-text {
+      flex: 1;
+      font-size: 13px
+    }
+
+    .window-buttons {
+      height: 100%;
+      display: flex
+    }
+
+    .win-btn {
+      width: 45px;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer
+    }
+
+    .win-btn:hover {
+      background: #ddd
+    }
+
+    .win-btn.close:hover {
+      background: #e81123;
+      color: #fff
+    }
+
+    .window-body {
+      height: calc(100% - 38px);
+      overflow: auto
+    }
+
+    .window-body.pad {
+      padding: 16px
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 10px;
+      border-bottom: 1px solid #ddd
+    }
+
+    .toolbar button,
+    .settings-button,
+    .notepad-menu button {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 7px 10px
+    }
+
+    .explorer {
+      display: flex;
+      height: 100%
+    }
+
+    .sidebar {
+      width: 180px;
+      background: var(--w2);
+      border-right: 1px solid #ddd;
+      padding: 10px;
+      overflow: auto
+    }
+
+    .side-item {
+      padding: 9px;
+      border-radius: 4px;
+      cursor: pointer
+    }
+
+    .side-item:hover {
+      background: #dceeff
+    }
+
+    .files-area {
+      flex: 1;
+      padding: 10px;
+      overflow: auto
+    }
+
+    .address-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px
+    }
+
+    .address-bar input {
+      flex: 1;
+      height: 34px;
+      border: 1px solid #ccc;
+      padding: 0 10px
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 100px);
+      gap: 10px
+    }
+
+    .file {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      min-height: 90px;
+      cursor: pointer
+    }
+
+    .file:hover,
+    .file.selected {
+      background: #e5f3ff
+    }
+
+    .file-icon {
+      font-size: 40px;
+      display: block
+    }
+
+    .file-name {
+      font-size: 12px;
+      word-break: break-word
+    }
+
+    .notepad {
+      height: 100%;
+      display: flex;
+      flex-direction: column
+    }
+
+    .notepad-menu {
+      height: 40px;
+      display: flex;
+      gap: 5px;
+      padding: 4px;
+      border-bottom: 1px solid #ddd
+    }
+
+    .notepad textarea {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      resize: none;
+      padding: 12px;
+      font: 15px Consolas, monospace;
+      user-select: text
+    }
+
+    .calculator {
+      padding: 20px;
+      background: #f4f4f4;
+      height: 100%
+    }
+
+    .calc-display {
+      width: 100%;
+      height: 60px;
+      font-size: 28px;
+      text-align: right;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc
+    }
+
+    .calc-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px
+    }
+
+    .calc-buttons button {
+      height: 54px;
+      border: 1px solid #ddd;
+      background: #fff;
+      font-size: 18px
+    }
+
+    .settings {
+      display: flex;
+      height: 100%
+    }
+
+    .settings-nav {
+      width: 210px;
+      background: var(--w2);
+      padding: 10px
+    }
+
+    .settings-item {
+      padding: 11px;
+      cursor: pointer;
+      border-radius: 4px
+    }
+
+    .settings-item:hover {
+      background: #ddd
+    }
+
+    .settings-content {
+      padding: 25px;
+      flex: 1;
+      overflow: auto
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      padding: 18px;
+      margin-top: 15px
+    }
+
+    .switch {
+      width: 45px;
+      height: 24px;
+      background: #aaa;
+      border-radius: 20px;
+      float: right
+    }
+
+    .switch.on {
+      background: #0783d8
+    }
+
+    .switch:after {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      margin: 2px
+    }
+
+    .switch.on:after {
+      transform: translateX(21px)
+    }
+
+    #taskbar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 48px;
+      background: var(--tb);
+      backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      z-index: 10000;
+      color: #fff
+    }
+
+    .start-btn,
+    .search-btn,
+    .task-icon {
+      height: 48px;
+      min-width: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer
+    }
+
+    .start-btn:hover,
+    .search-btn:hover,
+    .task-icon:hover {
+      background: #fff2
+    }
+
+    .start-btn {
+      font-size: 24px
+    }
+
+    .search-btn {
+      width: 230px;
+      justify-content: flex-start;
+      padding: 0 15px;
+      gap: 10px;
+      font-size: 14px;
+      color: #ddd
+    }
+
+    .running-apps {
+      display: flex;
+      height: 100%
+    }
+
+    .task-icon {
+      font-size: 21px;
+      border-bottom: 2px solid transparent
+    }
+
+    .task-icon.active {
+      border-bottom-color: #fff;
+      background: #fff1
+    }
+
+    .system-tray {
+      margin-left: auto;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      font-size: 14px
+    }
+
+    .clock {
+      text-align: right;
+      line-height: 16px;
+      font-size: 12px
+    }
+
+    .start-menu {
+      position: absolute;
+      left: 8px;
+      bottom: 56px;
+      width: 650px;
+      height: 570px;
+      max-width: calc(100vw - 16px);
+      background: #191e24f7;
+      color: #fff;
+      border: 1px solid #fff2;
+      box-shadow: 0 15px 50px #0008;
+      display: none;
+      z-index: 9000
+    }
+
+    .start-search {
+      padding: 18px
+    }
+
+    .start-search input {
+      width: 100%;
+      height: 40px;
+      padding: 0 14px;
+      border: 0
+    }
+
+    .start-content {
+      display: flex;
+      height: 430px;
+      overflow: hidden
+    }
+
+    .start-left {
+      width: 230px;
+      padding: 15px;
+      overflow: auto
+    }
+
+    .start-app {
+      padding: 9px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      border-radius: 4px;
+      cursor: pointer
+    }
+
+    .start-app:hover {
+      background: #fff2
+    }
+
+    .start-right {
+      flex: 1;
+      padding: 15px
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px
+    }
+
+    .tile {
+      min-height: 85px;
+      background: #0078d4bf;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      cursor: pointer
+    }
+
+    .tile:hover {
+      background: #1689df
+    }
+
+    .tile-icon {
+      font-size: 28px;
+      margin-bottom: 7px
+    }
+
+    .start-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 65px;
+      border-top: 1px solid #fff2;
+      display: flex;
+      align-items: center;
+      padding: 0 20px
+    }
+
+    .profile {
+      display: flex;
+      gap: 10px;
+      align-items: center
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      background: #0783d8;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .power {
+      margin-left: auto;
+      font-size: 22px;
+      cursor: pointer
+    }
+
+    #notification {
+      position: absolute;
+      right: 15px;
+      bottom: 60px;
+      width: 320px;
+      max-width: calc(100vw - 30px);
+      background: #1e1ef7;
+      color: #fff;
+      padding: 18px;
+      border-radius: 7px;
+      display: none;
+      z-index: 20000
+    }
+
+    #notification button {
+      margin-top: 12px;
+      padding: 7px 14px;
+      border: 0;
+      background: #0783d8;
+      color: #fff
+    }
+
+    #contextMenu {
+      position: absolute;
+      width: 220px;
+      background: #fff;
+      color: #222;
+      box-shadow: 0 10px 35px #0005;
+      border: 1px solid #ddd;
+      display: none;
+      z-index: 30000;
+      padding: 5px 0
+    }
+
+    .context-item {
+      padding: 9px 15px;
+      cursor: pointer
+    }
+
+    .context-item:hover {
+      background: #e5f3ff
+    }
+
+    #modal,
+    #webModal {
+      position: fixed;
+      inset: 0;
+      background: #0007;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40000
+    }
+
+    .modal-box {
+      width: 420px;
+      max-width: 92vw;
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      color: #111;
+      border-radius: 8px;
+      box-shadow: 0 20px 60px #0008
+    }
+
+    .modal-title {
+      padding: 14px;
+      background: #f4f4f4;
+      font-weight: 600
+    }
+
+    .modal-content {
+      padding: 18px
+    }
+
+    .modal-content input,
+    .modal-content textarea,
+    .modal-content select {
+      width: 100%;
+      height: 40px;
+      padding: 0 10px;
+      border: 1px solid #bbb
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 18px;
+      border-top: 1px solid #ddd
+    }
+
+    .modal-buttons button {
+      padding: 8px 14px;
+      border: 1px solid #ccc;
+      background: #fff
+    }
+
+    .primary {
+      background: #0078d4 !important;
+      color: #fff !important;
+      border-color: #0078d4 !important
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 16px
+    }
+
+    .admin-section {
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      padding: 14px
+    }
+
+    .admin-section h3 {
+      margin-bottom: 10px
+    }
+
+    .admin-input {
+      width: 100%;
+      height: 36px;
+      padding: 0 9px;
+      border: 1px solid #bbb;
+      margin: 4px 0 8px
+    }
+
+    .link-row {
+      display: grid;
+      grid-template-columns: 45px 1fr 1.3fr 1fr 65px;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 7px
+    }
+
+    .link-row input {
+      height: 34px;
+      border: 1px solid #bbb;
+      padding: 0 7px;
+      min-width: 0
+    }
+
+    .drive {
+      height: 100%;
+      display: flex;
+      flex-direction: column
+    }
+
+    .drivebar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 9px;
+      border-bottom: 1px solid #ddd
+    }
+
+    .drivebar button {
+      padding: 7px 10px;
+      border: 1px solid #bbb;
+      background: #fff
+    }
+
+    .drive-path {
+      padding: 8px 12px;
+      background: #f7f7f7;
+      border-bottom: 1px solid #ddd
+    }
+
+    .drive-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 130px);
+      gap: 12px;
+      overflow: auto
+    }
+
+    .drive-item {
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer
+    }
+
+    .drive-item:hover {
+      background: #eaf5ff
+    }
+
+    .drive-icon {
+      font-size: 42px
+    }
+
+    .drive-name {
+      font-size: 12px;
+      margin-top: 6px;
+      word-break: break-word
+    }
+
+    .progress {
+      height: 7px;
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 5px
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      background: #0078d4;
+      width: 0
+    }
+
+    .link-cards {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px
+    }
+
+    .link-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background: #fafafa
+    }
+
+    .link-card button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 7px;
+      border: 1px solid #bbb;
+      background: #fff
+    }
+
+    .link-icon {
+      font-size: 28px
+    }
+
+    .muted {
+      color: #777;
+      font-size: 12px
+    }
+
+    .dark {
+      --w: #202020;
+      --w2: #2b2b2b;
+      --t: #eee
+    }
+
+    .dark .toolbar button,
+    .dark .settings-button,
+    .dark .notepad-menu button,
+    .dark .calc-buttons button,
+    .dark .drivebar button {
+      background: #303030;
+      color: #fff;
+      border-color: #555
+    }
+
+    .dark .sidebar,
+    .dark .settings-nav,
+    .dark .calculator {
+      background: #252525
+    }
+
+    .dark .titlebar {
+      background: #292929
+    }
+
+    .dark .address-bar input,
+    .dark .calc-display {
+      background: #111;
+      color: #fff;
+      border-color: #555
+    }
+
+    .dark .admin-section,
+    .dark .drive-item,
+    .dark .link-card {
+      border-color: #555
+    }
+
+    .dark .link-card {
+      background: #292929
+    }
+
+    .dark .drive-path {
+      background: #252525
+    }
+
+    .dark #modal .modal-box,
+    .dark #webModal .modal-box {
+      background: #202020;
+      color: #eee
+    }
+
+    .dark .modal-title {
+      background: #292929
+    }
+
+    .dark .modal-content input {
+      background: #111;
+      color: #fff;
+      border-color: #555
+    }
+
+    @media(max-width:800px) {
+      .window {
+        width: 96vw !important;
+        height: calc(100vh - 65px) !important;
+        left: 2vw !important;
+        top: 8px !important
+      }
+
+      .search-btn {
+        width: 55px
+      }
+
+      .search-btn span {
+        display: none
+      }
+
+      .sidebar {
+        width: 125px
+      }
+
+      .start-menu {
+        width: 96vw;
+        height: 80vh;
+        left: 2vw
+      }
+
+      .tiles {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .admin-grid {
+        grid-template-columns: 1fr
+      }
+
+      .link-row {
+        grid-template-columns: 35px 1fr 1fr
+      }
+
+      .link-row input:nth-child(4) {
+        display: none
+      }
+    }
+
+    @media(max-width:500px) {
+      .start-content {
+        flex-direction: column
+      }
+
+      .start-left {
+        width: 100%;
+        height: 160px
+      }
+
+      .settings {
+        flex-direction: column
+      }
+
+      .settings-nav {
+        width: 100%;
+        height: 105px;
+        display: flex;
+        overflow: auto
+      }
+
+      .settings-content {
+        padding: 15px
+      }
+
+      .sidebar {
+        width: 105px
+      }
+
+      .drive-grid {
+        grid-template-columns: repeat(auto-fill, 90px)
+      }
+
+      .link-cards {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    .drive-item.selected {
+      outline: 2px solid #4f8cff;
+      background: rgba(79, 140, 255, .12)
+    }
+
+    .drivebar button,
+    .drivebar select {
+      cursor: pointer
+    }
+
+    .drive-path {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px
+    }
+
+    .drive-path input {
+      flex: 1;
+      min-width: 120px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #bbb
+    }
+  </style>
+</head>
+
+<body>
+  <div id="desktop">
+    <div class="desktop-icons">
+      <div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">💻</span>This PC</div>
+      <div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">📁</span>Files</div>
+      <div class="desktop-icon" ondblclick="openWindow('notepadWindow')"><span class="icon">📝</span>Notepad</div>
+      <div class="desktop-icon" ondblclick="openWindow('calculatorWindow')"><span class="icon">🧮</span>Calculator</div>
+      <div class="desktop-icon" ondblclick="openWindow('settingsWindow')"><span class="icon">⚙️</span>Settings</div>
+      <div class="desktop-icon" ondblclick="openWindow('adminWindow')"><span class="icon">🛠️</span>Main Admin</div>
+      <div class="desktop-icon" ondblclick="openWindow('linksWindow')"><span class="icon">🔗</span>My Links</div>
+      <div class="desktop-icon" ondblclick="openWindow('driveWindow')"><span class="icon">☁️</span>Shared Drive</div>
+      <div class="desktop-icon" ondblclick="openRecycleBin()"><span class="icon">🗑️</span>Recycle Bin</div>
+    </div>
+  </div>
+  <div class="start-menu" id="startMenu">
+    <div class="start-search"><input id="startSearch" placeholder="Type here to search"
+        oninput="searchApps(this.value)"></div>
+    <div class="start-content">
+      <div class="start-left"><b style="color:#aaa;font-size:13px">APPS</b>
+        <div class="start-app" data-name="file explorer" onclick="openWindow('explorerWindow')">📁 <span>File
+            Explorer</span></div>
+        <div class="start-app" data-name="notepad" onclick="openWindow('notepadWindow')">📝 <span>Notepad</span></div>
+        <div class="start-app" data-name="calculator" onclick="openWindow('calculatorWindow')">🧮
+          <span>Calculator</span></div>
+        <div class="start-app" data-name="settings" onclick="openWindow('settingsWindow')">⚙️ <span>Settings</span>
+        </div>
+        <div class="start-app" data-name="main admin" onclick="openWindow('adminWindow')">🛠️ <span>Main Admin</span>
+        </div>
+        <div class="start-app" data-name="links" onclick="openWindow('linksWindow')">🔗 <span>My Links</span></div>
+        <div class="start-app" data-name="drive file sharing" onclick="openWindow('driveWindow')">☁️ <span>Shared
+            Drive</span></div>
+        <div class="start-app" data-name="recycle bin" onclick="openRecycleBin()">🗑️ <span>Recycle Bin</span></div>
+      </div>
+      <div class="start-right"><b style="color:#aaa;font-size:13px">PINNED</b>
+        <div class="tiles">
+          <div class="tile" onclick="openWindow('explorerWindow')"><span class="tile-icon">📁</span>Files</div>
+          <div class="tile" onclick="openWindow('notepadWindow')"><span class="tile-icon">📝</span>Notepad</div>
+          <div class="tile" onclick="openWindow('calculatorWindow')"><span class="tile-icon">🧮</span>Calculator</div>
+          <div class="tile" onclick="openWindow('settingsWindow')"><span class="tile-icon">⚙️</span>Settings</div>
+          <div class="tile" onclick="openWindow('linksWindow')"><span class="tile-icon">🔗</span>Links</div>
+          <div class="tile" onclick="openWindow('driveWindow')"><span class="tile-icon">☁️</span>Drive</div>
+          <div class="tile" onclick="openBrowser()"><span class="tile-icon">🌐</span>Browser</div>
+          <div class="tile" onclick="openPhotos()"><span class="tile-icon">🖼️</span>Photos</div>
+        </div>
+      </div>
+    </div>
+    <div class="start-bottom">
+      <div class="profile">
+        <div class="avatar">A</div><span>Administrator</span>
+      </div>
+      <div class="power" onclick="powerMenu()">⏻</div>
+    </div>
+  </div>
+
+  <!-- Explorer -->
+  <div class="window" id="explorerWindow" style="left:110px;top:60px">
+    <div class="titlebar"><span class="title-icon">📁</span><span class="title-text">File Explorer</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('explorerWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('explorerWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('explorerWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="explorer">
+        <div class="sidebar">
+          <div class="side-item" onclick="navigateFolder('')">⭐ Quick Access</div>
+          <div class="side-item" onclick="navigateFolder('Desktop')">🖥️ Desktop</div>
+          <div class="side-item" onclick="navigateFolder('Documents')">📄 Documents</div>
+          <div class="side-item" onclick="navigateFolder('Downloads')">⬇️ Downloads</div>
+          <div class="side-item" onclick="navigateFolder('Pictures')">🖼️ Pictures</div>
+          <div class="side-item" onclick="navigateFolder('Videos')">🎬 Videos</div>
+          <div class="side-item" onclick="navigateFolder('Music')">🎵 Music</div>
+          <div class="side-item" onclick="openWindow('driveWindow')">☁️ Shared Drive</div>
+          <div class="side-item" onclick="openRecycleBin()">🗑️ Recycle Bin</div>
+        </div>
+        <div class="files-area">
+          <div class="address-bar"><button class="settings-button" onclick="goBackFolder()">←</button><input
+              id="currentPath" value="This PC" readonly></div>
+          <div class="toolbar"><button onclick="createFolder()">📁 New Folder</button><button
+              onclick="createTextFile()">📄 New Text</button><button onclick="triggerUpload()">⬆ Upload</button><button
+              onclick="renameSelected()">✏️ Rename</button><button onclick="copySelected()">📋 Copy</button><button
+              onclick="cutSelected()">✂️ Cut</button><button onclick="pasteItem()">📌 Paste</button><button
+              onclick="deleteSelected()">🗑️ Delete</button><button onclick="renderFiles()">🔄 Refresh</button></div>
+          <input id="fileInput" type="file" multiple hidden onchange="handleUpload(event)">
+          <div class="file-grid" id="fileGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Notepad -->
+  <div class="window" id="notepadWindow" style="left:170px;top:90px">
+    <div class="titlebar"><span class="title-icon">📝</span><span class="title-text">Notepad</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('notepadWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('notepadWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('notepadWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="notepad">
+        <div class="notepad-menu"><button onclick="newNote()">New</button><button
+            onclick="openSavedNotes()">Open</button><button onclick="saveNote()">Save</button><button
+            onclick="downloadNote()">Save As</button><button onclick="selectAllNote()">Select All</button></div>
+        <textarea id="notepadText" spellcheck="false" placeholder="Type something..."></textarea>
+      </div>
+    </div>
+  </div>
+  <!-- Calculator -->
+  <div class="window" id="calculatorWindow" style="left:280px;top:90px;width:360px;height:510px">
+    <div class="titlebar"><span class="title-icon">🧮</span><span class="title-text">Calculator</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('calculatorWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('calculatorWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('calculatorWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="calculator"><input class="calc-display" id="calcDisplay" readonly>
+        <div class="calc-buttons"><button onclick="clearCalc()">C</button><button
+            onclick="calcInput('/')">÷</button><button onclick="calcInput('*')">×</button><button
+            onclick="calcBack()">⌫</button><button onclick="calcInput('7')">7</button><button
+            onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button
+            onclick="calcInput('-')">−</button><button onclick="calcInput('4')">4</button><button
+            onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button
+            onclick="calcInput('+')">+</button><button onclick="calcInput('1')">1</button><button
+            onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button
+            onclick="calculate()">=</button><button onclick="calcInput('0')">0</button><button
+            onclick="calcInput('.')">.</button><button onclick="calcInput('(')">(</button><button
+            onclick="calcInput(')')">)</button></div>
+      </div>
+    </div>
+  </div>
+  <!-- Settings -->
+  <div class="window" id="settingsWindow" style="left:150px;top:55px">
+    <div class="titlebar"><span class="title-icon">⚙️</span><span class="title-text">Settings</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('settingsWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('settingsWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('settingsWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="settings">
+        <div class="settings-nav">
+          <div class="settings-item" onclick="settingsPage('system')">🖥️ System</div>
+          <div class="settings-item" onclick="settingsPage('personalization')">🎨 Personalization</div>
+          <div class="settings-item" onclick="settingsPage('apps')">📱 Apps</div>
+          <div class="settings-item" onclick="settingsPage('account')">👤 Account</div>
+          <div class="settings-item" onclick="settingsPage('network')">🌐 Network</div>
+          <div class="settings-item" onclick="settingsPage('privacy')">🔒 Privacy</div>
+          <div class="settings-item" onclick="settingsPage('security')">🛡️ Security</div>
+          <div class="settings-item" onclick="settingsPage('about')">ℹ️ About</div>
+        </div>
+        <div class="settings-content" id="settingsContent"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Admin -->
+  <div class="window" id="adminWindow" style="left:70px;top:45px;width:900px;height:600px">
+    <div class="titlebar"><span class="title-icon">🛠️</span><span class="title-text">Main Admin</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('adminWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('adminWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('adminWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body pad" id="adminBody">
+      <div class="card">
+        <h2>Main Admin Login</h2>
+        <p class="muted">Manage all passwords, project links and folder passwords.</p><input class="admin-input"
+          id="adminPasswordInput" type="password" placeholder="Admin password"><button class="primary"
+          style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+  <!-- Links -->
+  <div class="window" id="linksWindow" style="left:100px;top:65px;width:850px;height:560px">
+    <div class="titlebar"><span class="title-icon">🔗</span><span class="title-text">My Links</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('linksWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('linksWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('linksWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="toolbar"><input id="linksSearch" oninput="filterWebosLinks(this.value)" placeholder="Search links..."
+          style="height:34px;flex:1;padding:0 10px;border:1px solid #bbb"><button onclick="loadWebosLinks()">🔄
+          Refresh</button></div>
+      <div id="linksGrid" class="link-cards"></div>
+    </div>
+  </div>
+  <!-- Drive -->
+  <div class="window" id="driveWindow" style="left:80px;top:45px;width:920px;height:600px">
+    <div class="titlebar"><span class="title-icon">☁️</span><span class="title-text">Shared Drive</span>
+      <div class="window-buttons">
+        <div class="win-btn" onclick="minimizeWindow('driveWindow')">−</div>
+        <div class="win-btn" onclick="maximizeWindow('driveWindow')">□</div>
+        <div class="win-btn close" onclick="closeWindow('driveWindow')">×</div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="drive" id="driveBody">
+        <div class="card" style="margin:15px">
+          <h2>File Sharing</h2>
+          <p class="muted">Secure cloud Drive using the existing MongoDB/GridFS backend.</p><input class="admin-input"
+            id="drivePasswordInput" type="password" placeholder="File sharing password"><button class="primary"
+            style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="taskbar">
+    <div class="start-btn" onclick="toggleStart()">⊞</div>
+    <div class="search-btn" onclick="openStartSearch()">🔍 <span>Type here to search</span></div>
+    <div class="running-apps" id="runningApps"></div>
+    <div class="system-tray"><span>🌐</span><span>🔊</span><span>🔋</span>
+      <div class="clock">
+        <div id="time">00:00</div>
+        <div id="date">00/00/0000</div>
+      </div>
+    </div>
+  </div>
+  <div id="notification">
+    <h3 id="notificationTitle"></h3>
+    <div id="notificationText"></div><button onclick="closeNotification()">Close</button>
+  </div>
+  <div id="contextMenu">
+    <div class="context-item" onclick="location.reload()">🔄 Refresh</div>
+    <div class="context-item" onclick="openWindow('explorerWindow');createFolder()">📁 New Folder</div>
+    <div class="context-item" onclick="openWindow('explorerWindow');createTextFile()">📄 New Text Document</div>
+    <div class="context-item" onclick="openWindow('settingsWindow')">⚙️ Display Settings</div>
+    <div class="context-item" onclick="openWindow('adminWindow')">🛠️ Main Admin</div>
+  </div>
+  <div id="modal">
+    <div class="modal-box">
+      <div class="modal-title" id="modalTitle">Input</div>
+      <div class="modal-content"><input id="modalInput"></div>
+      <div class="modal-buttons"><button onclick="closeModal()">Cancel</button><button class="primary"
+          id="modalOK">OK</button></div>
+    </div>
+  </div>
+  <div id="webModal">
+    <div class="modal-box">
+      <div class="modal-title" id="webModalTitle">Input</div>
+      <div class="modal-content" id="webModalContent"></div>
+      <div class="modal-buttons"><button onclick="closeWebModal()">Cancel</button><button class="primary"
+          id="webModalOK">OK</button></div>
+    </div>
+  </div>
+  <script>
+    const DB_KEY = 'webos_files_v1', TRASH_KEY = 'webos_trash_v1', NOTES_KEY = 'webos_notes_v1', SETTINGS_KEY = 'webos_settings_v1'; let files = JSON.parse(localStorage.getItem(DB_KEY) || 'null'), trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'), settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'), currentFolder = '', selectedFile = null, clipboard = null, z = 100;
+    const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8), saveFiles = () => localStorage.setItem(DB_KEY, JSON.stringify(files)), esc = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); if (!files) { files = ['Documents', 'Downloads', 'Pictures', 'Videos', 'Music', 'Desktop'].map(name => ({ id: id(), name, type: 'folder', parent: '' })); saveFiles() }
+    const apps = { explorerWindow: { name: 'File Explorer', icon: '📁' }, notepadWindow: { name: 'Notepad', icon: '📝' }, calculatorWindow: { name: 'Calculator', icon: '🧮' }, settingsWindow: { name: 'Settings', icon: '⚙️' }, adminWindow: { name: 'Main Admin', icon: '🛠️' }, linksWindow: { name: 'My Links', icon: '🔗' }, driveWindow: { name: 'Shared Drive', icon: '☁️' } };
+    function openWindow(id) { let w = document.getElementById(id); if (!w) return; w.style.display = 'block'; w.classList.add('active'); z++; w.style.zIndex = z; document.getElementById('startMenu').style.display = 'none'; updateTask(id); if (id === 'explorerWindow') renderFiles(); if (id === 'settingsWindow') settingsPage('system'); if (id === 'linksWindow') loadWebosLinks(); if (id === 'adminWindow') renderAdminLogin(); if (id === 'driveWindow') renderDriveLogin() }
+    function closeWindow(id) { let w = document.getElementById(id); if (w) { w.style.display = 'none'; w.classList.remove('active'); document.getElementById('task-' + id)?.remove() } } function minimizeWindow(id) { document.getElementById(id).style.display = 'none' } function maximizeWindow(id) { let w = document.getElementById(id); if (w.dataset.max === '1') { w.style.cssText = w.dataset.restore; w.dataset.max = '0' } else { w.dataset.restore = `left:${w.offsetLeft}px;top:${w.offsetTop}px;width:${w.offsetWidth}px;height:${w.offsetHeight}px`; w.style.left = '0'; w.style.top = '0'; w.style.width = '100%'; w.style.height = 'calc(100vh - 48px)'; w.dataset.max = '1' } } function updateTask(id) { let c = document.getElementById('runningApps'), b = document.getElementById('task-' + id); if (!b) { b = document.createElement('div'); b.className = 'task-icon active'; b.id = 'task-' + id; b.textContent = apps[id].icon; b.onclick = () => { let w = document.getElementById(id); w.style.display = w.style.display === 'none' ? 'block' : 'block'; z++; w.style.zIndex = z }; c.appendChild(b) } else b.classList.add('active') }
+    function toggleStart() { let m = document.getElementById('startMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block' } function openStartSearch() { document.getElementById('startMenu').style.display = 'block'; setTimeout(() => document.getElementById('startSearch').focus(), 30) } function searchApps(v) { document.querySelectorAll('.start-app').forEach(x => x.style.display = x.textContent.toLowerCase().includes(v.toLowerCase()) ? 'flex' : 'none') } document.addEventListener('click', e => { if (!e.target.closest('#startMenu,.start-btn,.search-btn')) document.getElementById('startMenu').style.display = 'none'; if (!e.target.closest('#contextMenu')) document.getElementById('contextMenu').style.display = 'none' });
+    function renderFiles() { let g = document.getElementById('fileGrid'); g.innerHTML = ''; document.getElementById('currentPath').value = currentFolder ? (files.find(f => f.id === currentFolder)?.name || 'Folder') : 'This PC'; let arr = files.filter(f => f.parent === currentFolder); if (currentFolder) { let b = document.createElement('div'); b.className = 'file'; b.innerHTML = '<span class=file-icon>↩️</span><div class=file-name>..</div>'; b.onclick = goBackFolder; g.appendChild(b) } if (!arr.length && !currentFolder) { g.innerHTML = '<div class=muted style="padding:30px">This folder is empty</div>'; return } arr.forEach(f => { let e = document.createElement('div'); e.className = 'file'; e.innerHTML = `<span class=file-icon>${f.type === 'folder' ? '📁' : '📄'}</span><div class=file-name>${esc(f.name)}</div>`; e.onclick = () => { document.querySelectorAll('.file.selected').forEach(x => x.classList.remove('selected')); e.classList.add('selected'); selectedFile = f.id }; e.ondblclick = () => f.type === 'folder' ? (currentFolder = f.id, selectedFile = null, renderFiles()) : openFile(f); g.appendChild(e) }) } function navigateFolder(n) { let f = files.find(x => x.name === n && x.type === 'folder' && x.parent === ''); currentFolder = n ? f?.id || '' : ''; renderFiles() } function goBackFolder() { if (!currentFolder) return renderFiles(); let f = files.find(x => x.id === currentFolder); currentFolder = f?.parent || ''; renderFiles() }
+    function askInput(t, l, v, cb) { document.getElementById('modalTitle').textContent = t; document.getElementById('modalInput').placeholder = l; document.getElementById('modalInput').value = v || ''; document.getElementById('modal').style.display = 'flex'; window.modalCB = cb; setTimeout(() => document.getElementById('modalInput').focus(), 20) } function closeModal() { document.getElementById('modal').style.display = 'none'; window.modalCB = null } document.getElementById('modalOK').onclick = () => { let v = document.getElementById('modalInput').value.trim(), cb = window.modalCB; closeModal(); cb && cb(v) }; document.getElementById('modalInput').onkeydown = e => { if (e.key === 'Enter') document.getElementById('modalOK').click(); if (e.key === 'Escape') closeModal() };
+    function createFolder() { askInput('New Folder', 'Folder name', 'New Folder', n => { if (!n) return; if (files.some(f => f.parent === currentFolder && f.name.toLowerCase() === n.toLowerCase())) return showNotification('Error', 'Folder already exists'); files.push({ id: id(), name: n, type: 'folder', parent: currentFolder }); saveFiles(); renderFiles() }) } function createTextFile() { askInput('New Text Document', 'File name', 'New Text Document.txt', n => { if (!n) return; files.push({ id: id(), name: n.endsWith('.txt') ? n : n + '.txt', type: 'text', parent: currentFolder, content: '' }); saveFiles(); renderFiles() }) } function triggerUpload() { document.getElementById('fileInput').click() } function handleUpload(e) { [...e.target.files].forEach(f => files.push({ id: id(), name: f.name, type: 'upload', parent: currentFolder, size: f.size })); saveFiles(); renderFiles(); e.target.value = ''; showNotification('Upload Complete', e.target.files?.length + ' file(s) added.') } function openFile(f) { if (f.type === 'text') { openWindow('notepadWindow'); notepadText.value = f.content || ''; notepadText.dataset.fileId = f.id } else showNotification(f.name, 'Stored in browser workspace.') } function renameSelected() { let f = files.find(x => x.id === selectedFile); if (!f) return showNotification('Rename', 'Select a file first.'); askInput('Rename', 'New name', f.name, n => { if (n) { f.name = n; saveFiles(); renderFiles() } }) } function copySelected() { let f = files.find(x => x.id === selectedFile); if (f) { clipboard = { id: f.id, mode: 'copy' }; showNotification('Copied', f.name) } } function cutSelected() { let f = files.find(x => x.id === selectedFile); if (f) { clipboard = { id: f.id, mode: 'cut' }; showNotification('Cut', f.name) } } function pasteItem() { if (!clipboard) return; let f = files.find(x => x.id === clipboard.id); if (!f) return; if (clipboard.mode === 'copy') files.push({ ...f, id: id(), name: f.name + ' - Copy', parent: currentFolder }); else { f.parent = currentFolder; clipboard = null } saveFiles(); renderFiles() } function deleteSelected() { let i = files.findIndex(x => x.id === selectedFile); if (i < 0) return; trash.push({ ...files[i], deletedAt: new Date().toISOString() }); files.splice(i, 1); localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); saveFiles(); selectedFile = null; renderFiles(); showNotification('Recycle Bin', 'Moved to Recycle Bin') } function openRecycleBin() { if (!trash.length) return showNotification('Recycle Bin', 'Recycle Bin is empty.'); if (confirm('Restore the latest deleted item?')) { files.push(trash.pop()); saveFiles(); localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); renderFiles() } else { trash = []; localStorage.setItem(TRASH_KEY, '[]'); showNotification('Recycle Bin', 'Emptied.') } }
+    function newNote() { notepadText.value = ''; notepadText.dataset.fileId = '' } function saveNote() { let t = notepadText.value, fid = notepadText.dataset.fileId; if (fid) { let f = files.find(x => x.id === fid); if (f) { f.content = t; saveFiles(); return showNotification('Notepad', 'Saved.') } } askInput('Save Note', 'File name', 'Note.txt', n => { if (!n) return; let f = { id: id(), name: n.endsWith('.txt') ? n : n + '.txt', type: 'text', parent: currentFolder, content: t }; files.push(f); notepadText.dataset.fileId = f.id; saveFiles(); showNotification('Notepad', 'Saved.') }) } function openSavedNotes() { let a = files.filter(f => f.type === 'text'); if (!a.length) return showNotification('Notepad', 'No notes.'); let n = prompt(a.map((f, i) => `${i + 1}. ${f.name}`).join('\n') + '\n\nEnter number'); let f = a[+n - 1]; if (f) { notepadText.value = f.content || ''; notepadText.dataset.fileId = f.id } } function downloadNote() { let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([notepadText.value], { type: 'text/plain' })); a.download = 'Note.txt'; a.click() } function selectAllNote() { notepadText.select() }
+    function calcInput(v) { if (calcDisplay.value === 'Error') calcDisplay.value = ''; calcDisplay.value += v } function clearCalc() { calcDisplay.value = '' } function calcBack() { calcDisplay.value = calcDisplay.value.slice(0, -1) } function calculate() { try { if (!/^[0-9+\-*/.() ]+$/.test(calcDisplay.value)) throw 0; calcDisplay.value = Function('return (' + calcDisplay.value + ')')() } catch { calcDisplay.value = 'Error' } }
+    function settingsPage(p) { let c = document.getElementById('settingsContent'); if (p === 'personalization') c.innerHTML = `<h2>Personalization</h2><div class=card><h3>Dark Mode</h3><div class="switch ${document.body.classList.contains('dark') ? 'on' : ''}" onclick="toggleTheme()"></div></div>`; else c.innerHTML = `<h2>${p[0].toUpperCase() + p.slice(1)}</h2><div class=card><h3>WebOS</h3><p style="margin-top:10px">Windows-style WebOS is running. Cloud links, Admin and Shared Drive are connected to the existing backend.</p></div>` } function toggleTheme() { document.body.classList.toggle('dark'); settings.dark = document.body.classList.contains('dark'); localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } function openBrowser() { let u = prompt('Enter website URL', 'https://www.google.com'); if (u) window.open(u.startsWith('http') ? u : 'https://' + u, '_blank') } function openPhotos() { document.getElementById('fileInput').accept = 'image/*'; triggerUpload(); document.getElementById('fileInput').accept = '' } function powerMenu() { showNotification('WebOS', 'Lock option selected.') } function showNotification(t, x) { notificationTitle.textContent = t; notificationText.textContent = x; notification.style.display = 'block'; clearTimeout(window.nt); window.nt = setTimeout(closeNotification, 5000) } function closeNotification() { notification.style.display = 'none' }
+    desktop.addEventListener('contextmenu', e => { e.preventDefault(); contextMenu.style.left = Math.min(e.clientX, innerWidth - 225) + 'px'; contextMenu.style.top = Math.min(e.clientY, innerHeight - 200) + 'px'; contextMenu.style.display = 'block' });
+
+    /* WEBOS CLOUD INTEGRATION */
+    let webosAdminToken = sessionStorage.getItem('webosAdminToken') || '', webosFileToken = sessionStorage.getItem('webosFileToken') || '', webosFolderToken = sessionStorage.getItem('webosFolderToken') || '', driveFolder = null, webosLinks = [];
+    const api = (p, o = {}) => fetch(p, o); const ah = () => webosFileToken ? { 'Authorization': 'Bearer ' + webosFileToken } : {}; const fh = () => webosFolderToken ? { 'X-Folder-Token': webosFolderToken } : {};
+    function renderAdminLogin() { document.getElementById('adminBody').innerHTML = `<div class=card><h2>Main Admin Login</h2><p class=muted>Manage passwords, all project links and folder passwords.</p><input class=admin-input id=adminPasswordInput type=password placeholder="Admin password"><button class=primary style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button></div>` } async function webosAdminLogin() { let p = document.getElementById('adminPasswordInput').value; let r = await api('/api/admin-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) }); let d = await r.json(); if (!r.ok) return showNotification('Admin Login', d.error || 'Wrong password'); webosAdminToken = d.token; sessionStorage.setItem('webosAdminToken', webosAdminToken); loadAdminPanel() } async function loadAdminPanel() { let r = await api('/api/admin/passwords', { headers: { Authorization: 'Bearer ' + webosAdminToken } }); let d = await r.json(); if (!r.ok) return renderAdminLogin(); webosLinks = d.links || []; document.getElementById('adminBody').innerHTML = `<div class=toolbar><button class=primary onclick="saveAdminPanel()">💾 Save All</button><button onclick="addAdminLinkRow()">➕ Add Link</button><button onclick="loadAdminPanel()">🔄 Reload</button></div><div class=admin-grid><div class=admin-section><h3>Passwords</h3><label>Main Page Password</label><input class=admin-input id=apPage value="${esc(d.pagePassword)}"><label>File Sharing Password</label><input class=admin-input id=apFile value="${esc(d.fileSharePassword)}"><label>Admin Password</label><input class=admin-input id=apAdmin value="${esc(d.adminPassword)}"><h3>Folder Passwords</h3><div id=folderPassList>${(d.folders || []).map(f => `<div style="margin:8px 0"><b>${esc(f.name)}</b><input class=admin-input data-folder-id="${f.id}" value="${esc(f.password || '')}" placeholder="Folder password"></div>`).join('') || '<span class=muted>No folders</span>'}</div></div><div class=admin-section style="grid-column:1/-1"><h3>All Project Links</h3><div class=link-row style="font-weight:bold"><span>Icon</span><span>Name</span><span>URL</span><span>Password</span><span>Delete</span></div><div id=adminLinks>${webosLinks.map((x, i) => adminLinkRow(x, i)).join('')}</div></div></div>` } function adminLinkRow(x, i) { return `<div class=link-row data-i="${i}"><input value="${esc(x.icon || '🔗')}" data-k=icon><input value="${esc(x.name || '')}" data-k=name><input value="${esc(x.url || '')}" data-k=url><input value="${esc(x.password || '')}" data-k=password><button onclick="this.closest('.link-row').remove()">🗑️</button></div>` } function addAdminLinkRow() { document.getElementById('adminLinks').insertAdjacentHTML('beforeend', adminLinkRow({ icon: '🔗', name: 'New Link', url: 'https://', password: '' }, webosLinks.length)) } async function saveAdminPanel() { let links = [...document.querySelectorAll('#adminLinks .link-row')].map(r => { let o = {}; r.querySelectorAll('[data-k]').forEach(i => o[i.dataset.k] = i.value.trim()); o.protected = !!o.password; return o }); let folders = [...document.querySelectorAll('[data-folder-id]')].map(i => ({ id: i.dataset.folderId, password: i.value })); let body = { pagePassword: apPage.value, fileSharePassword: apFile.value, adminPassword: apAdmin.value, links, folders }; let r = await api('/api/admin/passwords', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + webosAdminToken }, body: JSON.stringify(body) }); let d = await r.json(); if (!r.ok) return showNotification('Admin', d.error || 'Save failed'); showNotification('Admin', 'All settings saved.'); webosLinks = links; loadWebosLinks() }
+    async function loadWebosLinks() { let r = await api('/api/links'); let d = await r.json(); webosLinks = Array.isArray(d) ? d : []; renderWebosLinks(webosLinks) } function renderWebosLinks(a) { document.getElementById('linksGrid').innerHTML = a.map((x, i) => `<div class=link-card><div class=link-icon>${esc(x.icon || '🔗')}</div><b>${esc(x.name)}</b><div class=muted style="margin-top:5px">${esc(x.url)}</div><button onclick="openProtectedWebosLink(${i})">Open</button></div>`).join('') || '<div class=muted>No links found.</div>' } function filterWebosLinks(v) { renderWebosLinks(webosLinks.filter(x => (x.name + ' ' + x.url).toLowerCase().includes(v.toLowerCase()))) } async function openProtectedWebosLink(i) { let x = webosLinks[i]; if (!x) return; if (!x.protected) return window.open(x.url, '_blank'); openWebModal('Link Password', `<p>Enter password for <b>${esc(x.name)}</b></p><input id=linkPwd type=password class=admin-input>`); webModalOK.onclick = async () => { let r = await api('/api/link-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id, password: linkPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Link', d.error || 'Wrong password'); closeWebModal(); window.open(d.url || x.url, '_blank') } }
+    function renderDriveLogin() { document.getElementById('driveBody').innerHTML = `<div class=card style="margin:15px"><h2>File Sharing Drive</h2><p class=muted>Unlock the cloud file-sharing area.</p><input class=admin-input id=drivePasswordInput type=password placeholder="File sharing password"><button class=primary style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button></div>` } async function webosDriveLogin() { let p = document.getElementById('drivePasswordInput').value; let r = await api('/api/file-share-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) }); let d = await r.json(); if (!r.ok) return showNotification('Drive', d.error || 'Wrong password'); webosFileToken = d.token; sessionStorage.setItem('webosFileToken', webosFileToken); driveFolder = null; showDrive() } async function showDrive() {
+      document.getElementById('driveBody').innerHTML = `<div class=drive>
 <div class=drivebar><button onclick="driveGoHome()">🏠 Home</button><button onclick="driveGoBack()">← Back</button><button onclick="driveLoad()">🔄 Refresh</button><button onclick="driveNewFolder()">📁 New Folder</button><button onclick="document.getElementById('driveFileInput').click()">⬆ Upload</button><button onclick="document.getElementById('driveFolderInput').click()">📂 Upload Folder</button><button onclick="driveSearch()">🔎 Search</button><select id=driveSort onchange="driveLoad()"><option value=name>Name</option><option value=date>Date</option><option value=size>Size</option><option value=type>Type</option></select></div>
 <div class=drive-path><input id=driveSearchInput placeholder="Search this drive..." onkeydown="if(event.key==='Enter')driveSearch()"><span id=drivePath>Shared Drive / Home</span></div><div id=driveSelectionBar class=muted style="padding:6px 12px">Select an item to use Rename, Move, Properties or Delete.</div><div class=drive-grid id=driveGrid></div>
-<input id=driveFileInput type=file multiple hidden onchange="driveUploadFiles(event)"><input id=driveFolderInput type=file webkitdirectory directory multiple hidden onchange="driveUploadFolder(event)"></div>`;driveLoad()}
-function driveAuth(){let h={...ah()};if(webosFolderToken)h['X-Folder-Token']=webosFolderToken;return h}
-function driveEsc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function driveIcon(t,n){t=String(t||'').toLowerCase();n=String(n||'').toLowerCase();if(t.startsWith('image/'))return'🖼️';if(t.startsWith('video/'))return'🎬';if(t.startsWith('audio/'))return'🎵';if(t.includes('pdf'))return'📕';if(/\.(zip|rar|7z|iso|gz|tar)$/i.test(n)||t.includes('compressed'))return'🗜️';if(/\.(apk)$/i.test(n)||t.includes('android'))return'📱';if(/\.(exe|msi|bat|cmd|dll)$/i.test(n)||t.includes('executable')||t.includes('windows'))return'💻';if(/\.(html?|css|js|json|py|cpp|java)$/i.test(n))return'🧑‍💻';return'📄'}
-function driveFmtSize(n){n=Number(n||0);if(n<1024)return n+' B';if(n<1048576)return(n/1024).toFixed(1)+' KB';if(n<1073741824)return(n/1048576).toFixed(1)+' MB';return(n/1073741824).toFixed(2)+' GB'}
-let driveSelected=null;
-function driveSelect(item){driveSelected=item;document.querySelectorAll('.drive-item').forEach(x=>x.classList.remove('selected'));let el=document.querySelector(`[data-drive-id="${CSS.escape(item.id)}"]`);if(el)el.classList.add('selected');document.getElementById('driveSelectionBar').innerHTML=`Selected: <b>${driveEsc(item.name)}</b> &nbsp; <button onclick="driveRename()">✏️ Rename</button> <button onclick="driveMove()">📦 Move</button> <button onclick="driveProperties()">ℹ️ Properties</button> <button onclick="driveDelete()">🗑️ Delete</button> ${item.type==='file'?`<button onclick="driveDownload('${item.id}','${driveEsc(item.name)}')">📥 Download</button>`:''}`}
-async function driveLoad(){let g=document.getElementById('driveGrid');if(!g)return;g.innerHTML='<div class=muted>Loading...</div>';driveSelected=null;let pid=driveFolder?.id||'';let h=driveAuth();try{let [fr,rr]=await Promise.all([api('/api/folders?parentId='+encodeURIComponent(pid),{headers:h}),api('/api/files?folderId='+encodeURIComponent(pid),{headers:h})]);if(fr.status===401||rr.status===401)return renderDriveLogin();if(fr.status===403)return openFolderPassword(driveFolder);let folders=await fr.json(),files=await rr.json();let sort=document.getElementById('driveSort')?.value||'name';if(sort==='date'){folders.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));files.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0))}else if(sort==='size')files.sort((a,b)=>Number(b.size||0)-Number(a.size||0));else if(sort==='type')files.sort((a,b)=>String(a.type).localeCompare(String(b.type)));else{folders.sort((a,b)=>a.name.localeCompare(b.name));files.sort((a,b)=>a.name.localeCompare(b.name))}document.getElementById('drivePath').innerHTML=`Shared Drive / ${driveEsc(driveFolder?.name||'Home')}`;let html=folders.map(f=>`<div class="drive-item" data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({id:f.id,name:f.name,type:'folder',protected:f.protected})})' ondblclick="driveOpenFolder('${f.id}','${driveEsc(f.name)}','${f.protected}')"><div class=drive-icon>📁</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>Folder${f.protected?' • 🔐':''}</div></div>`).join('');html+=files.map(f=>`<div class="drive-item" data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({id:f.id,name:f.name,type:'file',size:f.size,date:f.date,mime:f.type})})' ondblclick="driveViewFile('${f.id}','${driveEsc(f.name)}','${driveEsc(f.type||'')}')"><div class=drive-icon>${driveIcon(f.type,f.name)}</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>${driveFmtSize(f.size)} • ${driveEsc(f.type||'file')}</div></div>`).join('');g.innerHTML=html||'<div class=muted>No files or folders.</div>';}catch(e){g.innerHTML='<div class=muted>❌ '+driveEsc(e.message)+'</div>'}}
-function driveGoHome(){driveFolder=null;webosFolderToken='';sessionStorage.removeItem('webosFolderToken');driveLoad()}function driveGoBack(){if(!driveFolder)return;driveFolder=null;webosFolderToken='';driveLoad()}
-async function driveNewFolder(){openWebModal('New Drive Folder','<input id=newFolderName class=admin-input placeholder="Folder name"><input id=newFolderPwd class=admin-input placeholder="Optional password" type=password>');webModalOK.onclick=async()=>{let r=await api('/api/folders',{method:'POST',headers:{'Content-Type':'application/json',...driveAuth()},body:JSON.stringify({name:newFolderName.value,parentId:driveFolder?.id||null,password:newFolderPwd.value})});let d=await r.json();if(!r.ok)return showNotification('Drive',d.error||'Create failed');closeWebModal();driveLoad()}}
-async function driveRename(){if(!driveSelected)return;let old=driveSelected.name;openWebModal('Rename',`<input id=renameDriveName class=admin-input value="${driveEsc(old)}">`);webModalOK.onclick=async()=>{let url=driveSelected.type==='folder'?'/api/folders/'+driveSelected.id:'/api/files/'+driveSelected.id;let r=await api(url,{method:'PATCH',headers:{'Content-Type':'application/json',...driveAuth()},body:JSON.stringify({name:renameDriveName.value})});let d=await r.json();if(!r.ok)return showNotification('Rename',d.error||'Rename failed');closeWebModal();driveLoad()}}
-async function driveMove(){if(!driveSelected)return;let target=prompt('Move to folder ID (leave blank for Home):',driveFolder?.id||'');let r=await api('/api/items/move',{method:'POST',headers:{'Content-Type':'application/json',...driveAuth()},body:JSON.stringify({itemId:driveSelected.id,type:driveSelected.type,parentId:target||null})});let d=await r.json();if(!r.ok)return showNotification('Move',d.error||'Move failed');showNotification('Move','Item moved successfully');driveLoad()}
-function driveProperties(){if(!driveSelected)return;openWebModal('Properties',`<div class=card><b>${driveEsc(driveSelected.name)}</b><p>Type: ${driveSelected.type==='folder'?'Folder':driveEsc(driveSelected.mime||'File')}</p><p>Size: ${driveSelected.type==='file'?driveFmtSize(driveSelected.size):'—'}</p><p>ID: ${driveEsc(driveSelected.id)}</p></div>`);webModalOK.textContent='Close'}
-async function driveDelete(){if(!driveSelected)return;if(!confirm(`Delete "${driveSelected.name}"?`))return;let url=driveSelected.type==='folder'?'/api/folders/'+driveSelected.id:'/api/files/'+driveSelected.id;let r=await api(url,{method:'DELETE',headers:driveAuth()});let d=await r.json().catch(()=>({}));if(!r.ok)return showNotification('Delete',d.error||'Delete failed');showNotification('Delete','Moved/deleted successfully');driveLoad()}
-async function driveSearch(){let q=document.getElementById('driveSearchInput')?.value.trim();if(!q)return driveLoad();let r=await api('/api/search?q='+encodeURIComponent(q),{headers:ah()});let d=await r.json();if(!r.ok)return showNotification('Search',d.error||'Search failed');let g=document.getElementById('driveGrid');g.innerHTML=[...(d.folders||[]).map(f=>`<div class=drive-item data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({id:f.id,name:f.name,type:'folder',protected:f.protected})})'><div class=drive-icon>📁</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>Folder</div></div>`),...(d.files||[]).map(f=>`<div class=drive-item data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({id:f.id,name:f.name,type:'file',size:f.size,date:f.date,mime:f.type})})'><div class=drive-icon>${driveIcon(f.type,f.name)}</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>${driveFmtSize(f.size)}</div></div>`)].join('')||'<div class=muted>No results.</div>'}
-async function driveUploadFiles(e){try{const arr=[...e.target.files];await Promise.all(arr.map(f=>driveUploadOne(f,f.name,driveFolder?.id||null)));showNotification('Upload',`${arr.length} file(s) uploaded.`)}catch(err){showNotification('Upload',err.message||'Upload failed.')}finally{e.target.value='';driveLoad()}}
-async function driveUploadFolder(e){try{const rootMap={};for(const f of [...e.target.files]){let path=(f.webkitRelativePath||f.name).replace(/\\/g,'/');let parts=path.split('/').filter(Boolean),name=parts.pop(),parent=driveFolder?.id||null;for(const p of parts){let key=(parent||'root')+'/'+p;if(!rootMap[key]){let r=await api('/api/folders',{method:'POST',headers:{'Content-Type':'application/json',...driveAuth()},body:JSON.stringify({name:p,parentId:parent,password:''})});let d=await r.json();if(!r.ok)throw new Error(d.error||`Could not create folder ${p}`);rootMap[key]=d.folder?.id||d.id}parent=rootMap[key]}await driveUploadOne(f,name,parent)}showNotification('Upload','Folder uploaded successfully.')}catch(err){showNotification('Upload',err.message||'Folder upload failed.')}finally{e.target.value='';driveLoad()}}
-async function driveUploadOne(f,name,parent=null){const CHUNK=4*1024*1024, total=Math.max(1,Math.ceil(f.size/CHUNK)),uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));let next=0,done=0,workers=Math.min(4,total);async function worker(){while(true){let i=next++;if(i>=total)return;let start=i*CHUNK,end=Math.min(f.size,start+CHUNK),blob=f.slice(start,end),fd=new FormData();fd.append('chunk',blob,name);fd.append('uploadId',uploadId);fd.append('index',String(i));fd.append('total',String(total));fd.append('name',name);fd.append('mime',f.type||'application/octet-stream');fd.append('size',String(f.size));if(parent)fd.append('folderId',parent);let h={...ah()};if(parent&&webosFolderToken)h['X-Folder-Token']=webosFolderToken;let r=await api('/api/files/chunk',{method:'POST',headers:h,body:fd});if(!r.ok){let d=await r.json().catch(()=>({}));throw new Error(d.error||'Upload failed');}done+=blob.size;showNotification('Uploading',`${name} — ${f.size?Math.round(done/f.size*100):100}%`)}}await Promise.all(Array.from({length:workers},worker));let h={...ah()};if(parent&&webosFolderToken)h['X-Folder-Token']=webosFolderToken;let r=await api('/api/files/chunk/finalize',{method:'POST',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify({uploadId,total,name,mime:f.type||'application/octet-stream',size:f.size,folderId:parent})});if(!r.ok){let d=await r.json().catch(()=>({}));throw new Error(d.error||'Upload finalize failed')}}
-async function driveOpenFolder(id,name,protectedFlag){if(protectedFlag)return openFolderPassword({id,name,protected:true});driveFolder={id,name};webosFolderToken='';sessionStorage.removeItem('webosFolderToken');driveLoad()}
-function openFolderPassword(f){openWebModal('Folder Password',`<p>Folder <b>${driveEsc(f?.name||'')}</b> is protected.</p><input id=folderPwd type=password class=admin-input>`);webModalOK.onclick=async()=>{let r=await api('/api/folders/'+f.id+'/unlock',{method:'POST',headers:{'Content-Type':'application/json',...ah()},body:JSON.stringify({password:folderPwd.value})});let d=await r.json();if(!r.ok)return showNotification('Folder',d.error||'Wrong password');webosFolderToken=d.token;sessionStorage.setItem('webosFolderToken',d.token);closeWebModal();driveFolder={id:f.id,name:f.name};driveLoad()}}
-async function driveViewFile(id,name,type){let url='/api/files/'+id+'/view?token='+encodeURIComponent(webosFileToken)+(webosFolderToken?'&folderToken='+encodeURIComponent(webosFolderToken):'');let content=type.startsWith('image/')?`<img src="${url}" style="max-width:100%;max-height:65vh">`:type.startsWith('video/')?`<video src="${url}" controls style="max-width:100%;max-height:65vh"></video>`:type.startsWith('audio/')?`<audio src="${url}" controls style="width:100%"></audio>`:type.includes('pdf')?`<iframe src="${url}" style="width:100%;height:65vh;border:0"></iframe>`:`<p><b>${driveEsc(name)}</b></p><p class=muted>Preview is available when the browser supports this file type.</p>`;openWebModal(name,content);webModalOK.style.display='inline-block';webModalOK.textContent='Download';webModalOK.onclick=()=>driveDownload(id,name)}async function driveDownload(id,name){let r=await api('/api/files/'+id+'/download?token='+encodeURIComponent(webosFileToken)+(webosFolderToken?'&folderToken='+encodeURIComponent(webosFolderToken):''),{headers:ah()});if(!r.ok)return showNotification('Download','Download failed');let b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+<input id=driveFileInput type=file multiple hidden onchange="driveUploadFiles(event)"><input id=driveFolderInput type=file webkitdirectory directory multiple hidden onchange="driveUploadFolder(event)"></div>`; driveLoad()
+    }
+    function driveAuth() { let h = { ...ah() }; if (webosFolderToken) h['X-Folder-Token'] = webosFolderToken; return h }
+    function driveEsc(x) { return String(x ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) }
+    function driveIcon(t, n) { t = String(t || '').toLowerCase(); n = String(n || '').toLowerCase(); if (t.startsWith('image/')) return '🖼️'; if (t.startsWith('video/')) return '🎬'; if (t.startsWith('audio/')) return '🎵'; if (t.includes('pdf')) return '📕'; if (/\.(zip|rar|7z|iso|gz|tar)$/i.test(n) || t.includes('compressed')) return '🗜️'; if (/\.(apk)$/i.test(n) || t.includes('android')) return '📱'; if (/\.(exe|msi|bat|cmd|dll)$/i.test(n) || t.includes('executable') || t.includes('windows')) return '💻'; if (/\.(html?|css|js|json|py|cpp|java)$/i.test(n)) return '🧑‍💻'; return '📄' }
+    function driveFmtSize(n) { n = Number(n || 0); if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(1) + ' KB'; if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB'; return (n / 1073741824).toFixed(2) + ' GB' }
+    let driveSelected = null;
+    function driveSelect(item) { driveSelected = item; document.querySelectorAll('.drive-item').forEach(x => x.classList.remove('selected')); let el = document.querySelector(`[data-drive-id="${CSS.escape(item.id)}"]`); if (el) el.classList.add('selected'); document.getElementById('driveSelectionBar').innerHTML = `Selected: <b>${driveEsc(item.name)}</b> &nbsp; <button onclick="driveRename()">✏️ Rename</button> <button onclick="driveMove()">📦 Move</button> <button onclick="driveProperties()">ℹ️ Properties</button> <button onclick="driveDelete()">🗑️ Delete</button> ${item.type === 'file' ? `<button onclick="driveDownload('${item.id}','${driveEsc(item.name)}')">📥 Download</button>` : ''}` }
+    async function driveLoad() { let g = document.getElementById('driveGrid'); if (!g) return; g.innerHTML = '<div class=muted>Loading...</div>'; driveSelected = null; let pid = driveFolder?.id || ''; let h = driveAuth(); try { let [fr, rr] = await Promise.all([api('/api/folders?parentId=' + encodeURIComponent(pid), { headers: h }), api('/api/files?folderId=' + encodeURIComponent(pid), { headers: h })]); if (fr.status === 401 || rr.status === 401) return renderDriveLogin(); if (fr.status === 403) return openFolderPassword(driveFolder); let folders = await fr.json(), files = await rr.json(); let sort = document.getElementById('driveSort')?.value || 'name'; if (sort === 'date') { folders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)); files.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)) } else if (sort === 'size') files.sort((a, b) => Number(b.size || 0) - Number(a.size || 0)); else if (sort === 'type') files.sort((a, b) => String(a.type).localeCompare(String(b.type))); else { folders.sort((a, b) => a.name.localeCompare(b.name)); files.sort((a, b) => a.name.localeCompare(b.name)) } document.getElementById('drivePath').innerHTML = `Shared Drive / ${driveEsc(driveFolder?.name || 'Home')}`; let html = folders.map(f => `<div class="drive-item" data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({ id: f.id, name: f.name, type: 'folder', protected: f.protected })})' ondblclick="driveOpenFolder('${f.id}','${driveEsc(f.name)}','${f.protected}')"><div class=drive-icon>📁</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>Folder${f.protected ? ' • 🔐' : ''}</div></div>`).join(''); html += files.map(f => `<div class="drive-item" data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({ id: f.id, name: f.name, type: 'file', size: f.size, date: f.date, mime: f.type })})' ondblclick="driveViewFile('${f.id}','${driveEsc(f.name)}','${driveEsc(f.type || '')}')"><div class=drive-icon>${driveIcon(f.type, f.name)}</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>${driveFmtSize(f.size)} • ${driveEsc(f.type || 'file')}</div></div>`).join(''); g.innerHTML = html || '<div class=muted>No files or folders.</div>'; } catch (e) { g.innerHTML = '<div class=muted>❌ ' + driveEsc(e.message) + '</div>' } }
+    function driveGoHome() { driveFolder = null; webosFolderToken = ''; sessionStorage.removeItem('webosFolderToken'); driveLoad() } function driveGoBack() { if (!driveFolder) return; driveFolder = null; webosFolderToken = ''; driveLoad() }
+    async function driveNewFolder() { openWebModal('New Drive Folder', '<input id=newFolderName class=admin-input placeholder="Folder name"><input id=newFolderPwd class=admin-input placeholder="Optional password" type=password>'); webModalOK.onclick = async () => { let r = await api('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...driveAuth() }, body: JSON.stringify({ name: newFolderName.value, parentId: driveFolder?.id || null, password: newFolderPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Drive', d.error || 'Create failed'); closeWebModal(); driveLoad() } }
+    async function driveRename() { if (!driveSelected) return; let old = driveSelected.name; openWebModal('Rename', `<input id=renameDriveName class=admin-input value="${driveEsc(old)}">`); webModalOK.onclick = async () => { let url = driveSelected.type === 'folder' ? '/api/folders/' + driveSelected.id : '/api/files/' + driveSelected.id; let r = await api(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...driveAuth() }, body: JSON.stringify({ name: renameDriveName.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Rename', d.error || 'Rename failed'); closeWebModal(); driveLoad() } }
+    async function driveMove() { if (!driveSelected) return; let target = prompt('Move to folder ID (leave blank for Home):', driveFolder?.id || ''); let r = await api('/api/items/move', { method: 'POST', headers: { 'Content-Type': 'application/json', ...driveAuth() }, body: JSON.stringify({ itemId: driveSelected.id, type: driveSelected.type, parentId: target || null }) }); let d = await r.json(); if (!r.ok) return showNotification('Move', d.error || 'Move failed'); showNotification('Move', 'Item moved successfully'); driveLoad() }
+    function driveProperties() { if (!driveSelected) return; openWebModal('Properties', `<div class=card><b>${driveEsc(driveSelected.name)}</b><p>Type: ${driveSelected.type === 'folder' ? 'Folder' : driveEsc(driveSelected.mime || 'File')}</p><p>Size: ${driveSelected.type === 'file' ? driveFmtSize(driveSelected.size) : '—'}</p><p>ID: ${driveEsc(driveSelected.id)}</p></div>`); webModalOK.textContent = 'Close' }
+    async function driveDelete() { if (!driveSelected) return; if (!confirm(`Delete "${driveSelected.name}"?`)) return; let url = driveSelected.type === 'folder' ? '/api/folders/' + driveSelected.id : '/api/files/' + driveSelected.id; let r = await api(url, { method: 'DELETE', headers: driveAuth() }); let d = await r.json().catch(() => ({})); if (!r.ok) return showNotification('Delete', d.error || 'Delete failed'); showNotification('Delete', 'Moved/deleted successfully'); driveLoad() }
+    async function driveSearch() { let q = document.getElementById('driveSearchInput')?.value.trim(); if (!q) return driveLoad(); let r = await api('/api/search?q=' + encodeURIComponent(q), { headers: ah() }); let d = await r.json(); if (!r.ok) return showNotification('Search', d.error || 'Search failed'); let g = document.getElementById('driveGrid'); g.innerHTML = [...(d.folders || []).map(f => `<div class=drive-item data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({ id: f.id, name: f.name, type: 'folder', protected: f.protected })})'><div class=drive-icon>📁</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>Folder</div></div>`), ...(d.files || []).map(f => `<div class=drive-item data-drive-id="${f.id}" onclick='driveSelect(${JSON.stringify({ id: f.id, name: f.name, type: 'file', size: f.size, date: f.date, mime: f.type })})'><div class=drive-icon>${driveIcon(f.type, f.name)}</div><div class=drive-name>${driveEsc(f.name)}</div><div class=muted>${driveFmtSize(f.size)}</div></div>`)].join('') || '<div class=muted>No results.</div>' }
+    async function driveUploadFiles(e) { try { const arr = [...e.target.files]; await Promise.all(arr.map(f => driveUploadOne(f, f.name, driveFolder?.id || null))); showNotification('Upload', `${arr.length} file(s) uploaded.`) } catch (err) { showNotification('Upload', err.message || 'Upload failed.') } finally { e.target.value = ''; driveLoad() } }
+    async function driveUploadFolder(e) { try { const rootMap = {}; for (const f of [...e.target.files]) { let path = (f.webkitRelativePath || f.name).replace(/\\/g, '/'); let parts = path.split('/').filter(Boolean), name = parts.pop(), parent = driveFolder?.id || null; for (const p of parts) { let key = (parent || 'root') + '/' + p; if (!rootMap[key]) { let r = await api('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...driveAuth() }, body: JSON.stringify({ name: p, parentId: parent, password: '' }) }); let d = await r.json(); if (!r.ok) throw new Error(d.error || `Could not create folder ${p}`); rootMap[key] = d.folder?.id || d.id } parent = rootMap[key] } await driveUploadOne(f, name, parent) } showNotification('Upload', 'Folder uploaded successfully.') } catch (err) { showNotification('Upload', err.message || 'Folder upload failed.') } finally { e.target.value = ''; driveLoad() } }
+    async function driveUploadOne(f, name, parent = null) { const CHUNK = 4 * 1024 * 1024, total = Math.max(1, Math.ceil(f.size / CHUNK)), uploadId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random()).replace('.', '')); let next = 0, done = 0, workers = Math.min(4, total); async function worker() { while (true) { let i = next++; if (i >= total) return; let start = i * CHUNK, end = Math.min(f.size, start + CHUNK), blob = f.slice(start, end), fd = new FormData(); fd.append('chunk', blob, name); fd.append('uploadId', uploadId); fd.append('index', String(i)); fd.append('total', String(total)); fd.append('name', name); fd.append('mime', f.type || 'application/octet-stream'); fd.append('size', String(f.size)); if (parent) fd.append('folderId', parent); let h = { ...ah() }; if (parent && webosFolderToken) h['X-Folder-Token'] = webosFolderToken; let r = await api('/api/files/chunk', { method: 'POST', headers: h, body: fd }); if (!r.ok) { let d = await r.json().catch(() => ({})); throw new Error(d.error || 'Upload failed'); } done += blob.size; showNotification('Uploading', `${name} — ${f.size ? Math.round(done / f.size * 100) : 100}%`) } } await Promise.all(Array.from({ length: workers }, worker)); let h = { ...ah() }; if (parent && webosFolderToken) h['X-Folder-Token'] = webosFolderToken; let r = await api('/api/files/chunk/finalize', { method: 'POST', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify({ uploadId, total, name, mime: f.type || 'application/octet-stream', size: f.size, folderId: parent }) }); if (!r.ok) { let d = await r.json().catch(() => ({})); throw new Error(d.error || 'Upload finalize failed') } }
+    async function driveOpenFolder(id, name, protectedFlag) { if (protectedFlag) return openFolderPassword({ id, name, protected: true }); driveFolder = { id, name }; webosFolderToken = ''; sessionStorage.removeItem('webosFolderToken'); driveLoad() }
+    function openFolderPassword(f) { openWebModal('Folder Password', `<p>Folder <b>${driveEsc(f?.name || '')}</b> is protected.</p><input id=folderPwd type=password class=admin-input>`); webModalOK.onclick = async () => { let r = await api('/api/folders/' + f.id + '/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ password: folderPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Folder', d.error || 'Wrong password'); webosFolderToken = d.token; sessionStorage.setItem('webosFolderToken', d.token); closeWebModal(); driveFolder = { id: f.id, name: f.name }; driveLoad() } }
+    async function driveViewFile(id, name, type) { let url = '/api/files/' + id + '/view?token=' + encodeURIComponent(webosFileToken) + (webosFolderToken ? '&folderToken=' + encodeURIComponent(webosFolderToken) : ''); let content = type.startsWith('image/') ? `<img src="${url}" style="max-width:100%;max-height:65vh">` : type.startsWith('video/') ? `<video src="${url}" controls style="max-width:100%;max-height:65vh"></video>` : type.startsWith('audio/') ? `<audio src="${url}" controls style="width:100%"></audio>` : type.includes('pdf') ? `<iframe src="${url}" style="width:100%;height:65vh;border:0"></iframe>` : `<p><b>${driveEsc(name)}</b></p><p class=muted>Preview is available when the browser supports this file type.</p>`; openWebModal(name, content); webModalOK.style.display = 'inline-block'; webModalOK.textContent = 'Download'; webModalOK.onclick = () => driveDownload(id, name) } async function driveDownload(id, name) { let r = await api('/api/files/' + id + '/download?token=' + encodeURIComponent(webosFileToken) + (webosFolderToken ? '&folderToken=' + encodeURIComponent(webosFolderToken) : ''), { headers: ah() }); if (!r.ok) return showNotification('Download', 'Download failed'); let b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) }
 
-function openWebModal(t,html){webModalTitle.textContent=t;webModalContent.innerHTML=html;webModal.style.display='flex';webModalOK.style.display='inline-block';webModalOK.textContent='OK'}function closeWebModal(){webModal.style.display='none';webModalOK.onclick=null}
+    function openWebModal(t, html) { webModalTitle.textContent = t; webModalContent.innerHTML = html; webModal.style.display = 'flex'; webModalOK.style.display = 'inline-block'; webModalOK.textContent = 'OK' } function closeWebModal() { webModal.style.display = 'none'; webModalOK.onclick = null }
 
-/* window dragging */
-document.querySelectorAll('.titlebar').forEach(bar=>{let drag=false,ox=0,oy=0;bar.onmousedown=e=>{let w=bar.closest('.window');if(w.dataset.max==='1')return;drag=true;ox=e.clientX-w.offsetLeft;oy=e.clientY-w.offsetTop;z++;w.style.zIndex=z};document.addEventListener('mousemove',e=>{if(drag){let w=bar.closest('.window');w.style.left=e.clientX-ox+'px';w.style.top=e.clientY-oy+'px'}});document.addEventListener('mouseup',()=>drag=false)});
-function updateClock(){let d=new Date(),h=d.getHours(),m=String(d.getMinutes()).padStart(2,'0'),s=String(d.getSeconds()).padStart(2,'0');let ap=h>=12?'PM':'AM';h=h%12||12;time.textContent=`${String(h).padStart(2,'0')}:${m}:${s} ${ap}`;date.textContent=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`}setInterval(updateClock,1000);updateClock();if(settings.dark)document.body.classList.add('dark');renderFiles();
-</script></body></html>
+    /* window dragging */
+    document.querySelectorAll('.titlebar').forEach(bar => { let drag = false, ox = 0, oy = 0; bar.onmousedown = e => { let w = bar.closest('.window'); if (w.dataset.max === '1') return; drag = true; ox = e.clientX - w.offsetLeft; oy = e.clientY - w.offsetTop; z++; w.style.zIndex = z }; document.addEventListener('mousemove', e => { if (drag) { let w = bar.closest('.window'); w.style.left = e.clientX - ox + 'px'; w.style.top = e.clientY - oy + 'px' } }); document.addEventListener('mouseup', () => drag = false) });
+    function updateClock() { let d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0'), s = String(d.getSeconds()).padStart(2, '0'); let ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; time.textContent = `${String(h).padStart(2, '0')}:${m}:${s} ${ap}`; date.textContent = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` } setInterval(updateClock, 1000); updateClock(); if (settings.dark) document.body.classList.add('dark'); renderFiles();
+  </script>
+</body>
+
+</html>
