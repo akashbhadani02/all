@@ -71,9 +71,9 @@ async function loadDrive(){
   document.getElementById("drivePath").textContent=window.currentFolderName||"This PC";
   document.getElementById("backBtn").disabled=window.driveStack.length===0;
   document.getElementById("homeBtn").disabled=false;
-  let out=folders.map(f=>{const fn=escapeHtml(f.name);const sid=escapeHtml(f.id);return `<div class="drive-item" onclick="openFolder('${sid}','${fn.replace(/'/g,"&#39;")}')">
-    <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${fn}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
-    <div class="item-actions"><button class="download-btn" onclick="event.stopPropagation();downloadFolder('${sid}','${fn.replace(/'/g,"&#39;")}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFolder('${sid}','${fn.replace(/'/g,"&#39;")}')">🗑️ Delete</button></div></div>`}).join("");
+  let out=folders.map(f=>`<div class="drive-item" onclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')">
+    <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
+    <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
   out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
     <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div></div>
     <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
@@ -117,11 +117,6 @@ async function submitFolderPasswordPopup(){
    const dr=await fetch("/api/folders/"+st.id,{method:"DELETE",headers});
    const dd=await dr.json().catch(()=>({}));
    if(dr.ok)loadDrive();else alert("❌ "+(dd.error||"Delete failed"));
-  }else if(st.mode==="download"){
-   const r=await fetch("/api/folders/"+st.id+"/download",{headers:{...authHeaders(),"X-Folder-Token":d.token}});
-   if(!r.ok){const dd=await r.json().catch(()=>({}));throw new Error(dd.error||"Folder download failed");}
-   const b=await r.blob(),cd=r.headers.get("Content-Disposition")||"",m=cd.match(/filename\*=UTF-8''([^;]+)/),name=m?decodeURIComponent(m[1]):(st.name||"folder")+".zip";
-   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   }else enterFolder(st.id,st.name,d.token);
  }catch(x){e.textContent="❌ "+(x.message||"Wrong folder password");e.style.display="block";i.value="";i.focus();}
 }
@@ -354,19 +349,9 @@ async function downloadFile(id){
  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 async function deleteFile(id){if(!confirm("Delete this file?"))return;const r=await fetch("/api/files/"+id,{method:"DELETE",headers:folderHeaders()});if(r.ok)loadDrive();else alert("Delete failed");}
-async function downloadFolder(id,name){
- try{
-  const r=await fetch('/api/folders/'+id+'/download',{headers:folderHeaders()});
-  if(r.status===403){openFolderPasswordPopup({mode:'download',id,name});return;}
-  if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Folder download failed');}
-  const b=await r.blob(),cd=r.headers.get('Content-Disposition')||'',m=cd.match(/filename\*=UTF-8''([^;]+)/);
-  const filename=m?decodeURIComponent(m[1]):(name||'folder')+'.zip';
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
- }catch(e){alert('❌ '+e.message);}
-}
-async function deleteFolder(id,name){
- const folderName=name||'this folder';
- if(!confirm('Delete this folder and everything inside it?\n\nThis will delete all subfolders and files.'))return;
+async function deleteFolder(id){
+ const folderName=(window.driveItems||[]).find(x=>x.id===id)?.name||"this folder";
+ if(!confirm("Delete this folder?\n\nIf it is password protected, a secure popup will ask for its password."))return;
  let headers=authHeaders();
  let r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
  if(r.status===403){openFolderPasswordPopup({mode:"delete",id,name:folderName});return;}

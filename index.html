@@ -1,1232 +1,835 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>WebOS - Windows Style Desktop</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
-    :root {
-      --a: #0078d4;
-      --tb: rgba(20, 25, 32, .94);
-      --w: #fff;
-      --w2: #f3f3f3;
-      --t: #111
-    }
-
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #000;
-      color: var(--t);
-      user-select: none
-    }
-
-    button,
-    input,
-    textarea {
-      font-family: inherit
-    }
-
-    button {
-      cursor: pointer
-    }
-
-    #desktop {
-      position: absolute;
-      inset: 0 0 48px;
-      background: linear-gradient(#0001, #0003), url("https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=2400&q=90") center/cover
-    }
-
-    .desktop-icons {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      width: 100px
-    }
-
-    .desktop-icon {
-      width: 78px;
-      min-height: 78px;
-      color: #fff;
-      text-align: center;
-      font-size: 12px;
-      padding: 5px;
-      border-radius: 5px;
-      text-shadow: 0 1px 3px #000;
-      cursor: pointer
-    }
-
-    .desktop-icon:hover,
-    .desktop-icon.selected {
-      background: #fff3
-    }
-
-    .desktop-icon .icon {
-      font-size: 32px;
-      display: block;
-      margin-bottom: 4px
-    }
-
-    .window {
-      position: absolute;
-      width: 720px;
-      height: 500px;
-      max-width: 100vw;
-      max-height: calc(100vh - 48px);
-      background: var(--w);
-      color: var(--t);
-      border-radius: 7px;
-      box-shadow: 0 15px 60px #0007;
-      overflow: hidden;
-      display: none;
-      z-index: 100
-    }
-
-    .titlebar {
-      height: 38px;
-      background: var(--w2);
-      display: flex;
-      align-items: center;
-      padding-left: 12px;
-      cursor: move;
-      touch-action: none
-    }
-
-    .title-icon {
-      font-size: 18px;
-      margin-right: 8px
-    }
-
-    .title-text {
-      flex: 1;
-      font-size: 13px
-    }
-
-    .window-buttons {
-      height: 100%;
-      display: flex
-    }
-
-    .win-btn {
-      width: 45px;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer
-    }
-
-    .win-btn:hover {
-      background: #ddd
-    }
-
-    .win-btn.close:hover {
-      background: #e81123;
-      color: #fff
-    }
-
-    .window-body {
-      height: calc(100% - 38px);
-      overflow: auto
-    }
-
-    .window-body.pad {
-      padding: 16px
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      padding: 10px;
-      border-bottom: 1px solid #ddd
-    }
-
-    .toolbar button,
-    .settings-button,
-    .notepad-menu button {
-      border: 1px solid #ccc;
-      background: #fff;
-      padding: 7px 10px
-    }
-
-    .explorer {
-      display: flex;
-      height: 100%
-    }
-
-    .sidebar {
-      width: 180px;
-      background: var(--w2);
-      border-right: 1px solid #ddd;
-      padding: 10px;
-      overflow: auto
-    }
-
-    .side-item {
-      padding: 9px;
-      border-radius: 4px;
-      cursor: pointer
-    }
-
-    .side-item:hover {
-      background: #dceeff
-    }
-
-    .files-area {
-      flex: 1;
-      padding: 10px;
-      overflow: auto
-    }
-
-    .address-bar {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 8px
-    }
-
-    .address-bar input {
-      flex: 1;
-      height: 34px;
-      border: 1px solid #ccc;
-      padding: 0 10px
-    }
-
-    .file-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, 100px);
-      gap: 10px
-    }
-
-    .file {
-      text-align: center;
-      padding: 10px;
-      border-radius: 5px;
-      min-height: 90px;
-      cursor: pointer
-    }
-
-    .file:hover,
-    .file.selected {
-      background: #e5f3ff
-    }
-
-    .file-icon {
-      font-size: 40px;
-      display: block
-    }
-
-    .file-name {
-      font-size: 12px;
-      word-break: break-word
-    }
-
-    .notepad {
-      height: 100%;
-      display: flex;
-      flex-direction: column
-    }
-
-    .notepad-menu {
-      height: 40px;
-      display: flex;
-      gap: 5px;
-      padding: 4px;
-      border-bottom: 1px solid #ddd
-    }
-
-    .notepad textarea {
-      flex: 1;
-      border: 0;
-      outline: 0;
-      resize: none;
-      padding: 12px;
-      font: 15px Consolas, monospace;
-      user-select: text
-    }
-
-    .calculator {
-      padding: 20px;
-      background: #f4f4f4;
-      height: 100%
-    }
-
-    .calc-display {
-      width: 100%;
-      height: 60px;
-      font-size: 28px;
-      text-align: right;
-      padding: 10px;
-      margin-bottom: 12px;
-      border: 1px solid #ccc
-    }
-
-    .calc-buttons {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 7px
-    }
-
-    .calc-buttons button {
-      height: 54px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-size: 18px
-    }
-
-    .settings {
-      display: flex;
-      height: 100%
-    }
-
-    .settings-nav {
-      width: 210px;
-      background: var(--w2);
-      padding: 10px
-    }
-
-    .settings-item {
-      padding: 11px;
-      cursor: pointer;
-      border-radius: 4px
-    }
-
-    .settings-item:hover {
-      background: #ddd
-    }
-
-    .settings-content {
-      padding: 25px;
-      flex: 1;
-      overflow: auto
-    }
-
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 7px;
-      padding: 18px;
-      margin-top: 15px
-    }
-
-    .switch {
-      width: 45px;
-      height: 24px;
-      background: #aaa;
-      border-radius: 20px;
-      float: right
-    }
-
-    .switch.on {
-      background: #0783d8
-    }
-
-    .switch:after {
-      content: "";
-      display: block;
-      width: 20px;
-      height: 20px;
-      background: #fff;
-      border-radius: 50%;
-      margin: 2px
-    }
-
-    .switch.on:after {
-      transform: translateX(21px)
-    }
-
-    #taskbar {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 48px;
-      background: var(--tb);
-      backdrop-filter: blur(18px);
-      display: flex;
-      align-items: center;
-      z-index: 10000;
-      color: #fff
-    }
-
-    .start-btn,
-    .search-btn,
-    .task-icon {
-      height: 48px;
-      min-width: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer
-    }
-
-    .start-btn:hover,
-    .search-btn:hover,
-    .task-icon:hover {
-      background: #fff2
-    }
-
-    .start-btn {
-      font-size: 24px
-    }
-
-    .search-btn {
-      width: 230px;
-      justify-content: flex-start;
-      padding: 0 15px;
-      gap: 10px;
-      font-size: 14px;
-      color: #ddd
-    }
-
-    .running-apps {
-      display: flex;
-      height: 100%
-    }
-
-    .task-icon {
-      font-size: 21px;
-      border-bottom: 2px solid transparent
-    }
-
-    .task-icon.active {
-      border-bottom-color: #fff;
-      background: #fff1
-    }
-
-    .system-tray {
-      margin-left: auto;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 12px;
-      font-size: 14px
-    }
-
-    .clock {
-      text-align: right;
-      line-height: 16px;
-      font-size: 12px
-    }
-
-    .start-menu {
-      position: absolute;
-      left: 8px;
-      bottom: 56px;
-      width: 650px;
-      height: 570px;
-      max-width: calc(100vw - 16px);
-      background: #191e24f7;
-      color: #fff;
-      border: 1px solid #fff2;
-      box-shadow: 0 15px 50px #0008;
-      display: none;
-      z-index: 9000
-    }
-
-    .start-search {
-      padding: 18px
-    }
-
-    .start-search input {
-      width: 100%;
-      height: 40px;
-      padding: 0 14px;
-      border: 0
-    }
-
-    .start-content {
-      display: flex;
-      height: 430px;
-      overflow: hidden
-    }
-
-    .start-left {
-      width: 230px;
-      padding: 15px;
-      overflow: auto
-    }
-
-    .start-app {
-      padding: 9px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      border-radius: 4px;
-      cursor: pointer
-    }
-
-    .start-app:hover {
-      background: #fff2
-    }
-
-    .start-right {
-      flex: 1;
-      padding: 15px
-    }
-
-    .tiles {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px
-    }
-
-    .tile {
-      min-height: 85px;
-      background: #0078d4bf;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      cursor: pointer
-    }
-
-    .tile:hover {
-      background: #1689df
-    }
-
-    .tile-icon {
-      font-size: 28px;
-      margin-bottom: 7px
-    }
-
-    .start-bottom {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 65px;
-      border-top: 1px solid #fff2;
-      display: flex;
-      align-items: center;
-      padding: 0 20px
-    }
-
-    .profile {
-      display: flex;
-      gap: 10px;
-      align-items: center
-    }
-
-    .avatar {
-      width: 34px;
-      height: 34px;
-      background: #0783d8;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .power {
-      margin-left: auto;
-      font-size: 22px;
-      cursor: pointer
-    }
-
-    #notification {
-      position: absolute;
-      right: 15px;
-      bottom: 60px;
-      width: 320px;
-      max-width: calc(100vw - 30px);
-      background: #1e1ef7;
-      color: #fff;
-      padding: 18px;
-      border-radius: 7px;
-      display: none;
-      z-index: 20000
-    }
-
-    #notification button {
-      margin-top: 12px;
-      padding: 7px 14px;
-      border: 0;
-      background: #0783d8;
-      color: #fff
-    }
-
-    #contextMenu {
-      position: absolute;
-      width: 220px;
-      background: #fff;
-      color: #222;
-      box-shadow: 0 10px 35px #0005;
-      border: 1px solid #ddd;
-      display: none;
-      z-index: 30000;
-      padding: 5px 0
-    }
-
-    .context-item {
-      padding: 9px 15px;
-      cursor: pointer
-    }
-
-    .context-item:hover {
-      background: #e5f3ff
-    }
-
-    #modal,
-    #webModal {
-      position: fixed;
-      inset: 0;
-      background: #0007;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 40000
-    }
-
-    .modal-box {
-      width: 420px;
-      max-width: 92vw;
-      max-height: 90vh;
-      overflow: auto;
-      background: #fff;
-      color: #111;
-      border-radius: 8px;
-      box-shadow: 0 20px 60px #0008
-    }
-
-    .modal-title {
-      padding: 14px;
-      background: #f4f4f4;
-      font-weight: 600
-    }
-
-    .modal-content {
-      padding: 18px
-    }
-
-    .modal-content input,
-    .modal-content textarea,
-    .modal-content select {
-      width: 100%;
-      height: 40px;
-      padding: 0 10px;
-      border: 1px solid #bbb
-    }
-
-    .modal-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      padding: 12px 18px;
-      border-top: 1px solid #ddd
-    }
-
-    .modal-buttons button {
-      padding: 8px 14px;
-      border: 1px solid #ccc;
-      background: #fff
-    }
-
-    .primary {
-      background: #0078d4 !important;
-      color: #fff !important;
-      border-color: #0078d4 !important
-    }
-
-    .admin-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      padding: 16px
-    }
-
-    .admin-section {
-      border: 1px solid #ddd;
-      border-radius: 7px;
-      padding: 14px
-    }
-
-    .admin-section h3 {
-      margin-bottom: 10px
-    }
-
-    .admin-input {
-      width: 100%;
-      height: 36px;
-      padding: 0 9px;
-      border: 1px solid #bbb;
-      margin: 4px 0 8px
-    }
-
-    .link-row {
-      display: grid;
-      grid-template-columns: 45px 1fr 1.3fr 1fr 65px;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 7px
-    }
-
-    .link-row input {
-      height: 34px;
-      border: 1px solid #bbb;
-      padding: 0 7px;
-      min-width: 0
-    }
-
-    .drive {
-      height: 100%;
-      display: flex;
-      flex-direction: column
-    }
-
-    .drivebar {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      padding: 9px;
-      border-bottom: 1px solid #ddd
-    }
-
-    .drivebar button {
-      padding: 7px 10px;
-      border: 1px solid #bbb;
-      background: #fff
-    }
-
-    .drive-path {
-      padding: 8px 12px;
-      background: #f7f7f7;
-      border-bottom: 1px solid #ddd
-    }
-
-    .drive-grid {
-      padding: 14px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, 130px);
-      gap: 12px;
-      overflow: auto
-    }
-
-    .drive-item {
-      border: 1px solid #ddd;
-      border-radius: 7px;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer
-    }
-
-    .drive-item:hover {
-      background: #eaf5ff
-    }
-
-    .drive-icon {
-      font-size: 42px
-    }
-
-    .drive-name {
-      font-size: 12px;
-      margin-top: 6px;
-      word-break: break-word
-    }
-
-    .progress {
-      height: 7px;
-      background: #ddd;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 5px
-    }
-
-    .progress i {
-      display: block;
-      height: 100%;
-      background: #0078d4;
-      width: 0
-    }
-
-    .link-cards {
-      padding: 16px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px
-    }
-
-    .link-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 15px;
-      background: #fafafa
-    }
-
-    .link-card button {
-      margin-top: 10px;
-      width: 100%;
-      padding: 7px;
-      border: 1px solid #bbb;
-      background: #fff
-    }
-
-    .link-icon {
-      font-size: 28px
-    }
-
-    .muted {
-      color: #777;
-      font-size: 12px
-    }
-
-    .dark {
-      --w: #202020;
-      --w2: #2b2b2b;
-      --t: #eee
-    }
-
-    .dark .toolbar button,
-    .dark .settings-button,
-    .dark .notepad-menu button,
-    .dark .calc-buttons button,
-    .dark .drivebar button {
-      background: #303030;
-      color: #fff;
-      border-color: #555
-    }
-
-    .dark .sidebar,
-    .dark .settings-nav,
-    .dark .calculator {
-      background: #252525
-    }
-
-    .dark .titlebar {
-      background: #292929
-    }
-
-    .dark .address-bar input,
-    .dark .calc-display {
-      background: #111;
-      color: #fff;
-      border-color: #555
-    }
-
-    .dark .admin-section,
-    .dark .drive-item,
-    .dark .link-card {
-      border-color: #555
-    }
-
-    .dark .link-card {
-      background: #292929
-    }
-
-    .dark .drive-path {
-      background: #252525
-    }
-
-    .dark #modal .modal-box,
-    .dark #webModal .modal-box {
-      background: #202020;
-      color: #eee
-    }
-
-    .dark .modal-title {
-      background: #292929
-    }
-
-    .dark .modal-content input {
-      background: #111;
-      color: #fff;
-      border-color: #555
-    }
-
-    @media(max-width:800px) {
-      .window {
-        width: 96vw !important;
-        height: calc(100vh - 65px) !important;
-        left: 2vw !important;
-        top: 8px !important
-      }
-
-      .search-btn {
-        width: 55px
-      }
-
-      .search-btn span {
-        display: none
-      }
-
-      .sidebar {
-        width: 125px
-      }
-
-      .start-menu {
-        width: 96vw;
-        height: 80vh;
-        left: 2vw
-      }
-
-      .tiles {
-        grid-template-columns: repeat(2, 1fr)
-      }
-
-      .admin-grid {
-        grid-template-columns: 1fr
-      }
-
-      .link-row {
-        grid-template-columns: 35px 1fr 1fr
-      }
-
-      .link-row input:nth-child(4) {
-        display: none
-      }
-    }
-
-    @media(max-width:500px) {
-      .start-content {
-        flex-direction: column
-      }
-
-      .start-left {
-        width: 100%;
-        height: 160px
-      }
-
-      .settings {
-        flex-direction: column
-      }
-
-      .settings-nav {
-        width: 100%;
-        height: 105px;
-        display: flex;
-        overflow: auto
-      }
-
-      .settings-content {
-        padding: 15px
-      }
-
-      .sidebar {
-        width: 105px
-      }
-
-      .drive-grid {
-        grid-template-columns: repeat(auto-fill, 90px)
-      }
-
-      .link-cards {
-        grid-template-columns: 1fr 1fr
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Direct Links</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #111827;
+    font-family: Arial, sans-serif;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ================= PASSWORD SCREEN ================= */
+
+#passwordScreen {
+    position: fixed;
+    inset: 0;
+    background: #111827;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 99999;
+}
+
+.password-box {
+    width: 90%;
+    max-width: 380px;
+
+    background: #1f2937;
+    padding: 30px;
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 0 30px rgba(79,70,229,0.35),
+        0 20px 60px rgba(0,0,0,0.6);
+
+    text-align: center;
+}
+
+.password-box h2 {
+    color: white;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.password-box p {
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+.password-box input {
+    width: 100%;
+    padding: 14px;
+
+    border: 1px solid #4b5563;
+    border-radius: 10px;
+
+    background: #111827;
+    color: white;
+
+    outline: none;
+    font-size: 16px;
+
+    margin-bottom: 12px;
+}
+
+.password-box input:focus {
+    border-color: #6366f1;
+}
+
+.password-box button {
+    width: 100%;
+    padding: 14px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #4f46e5;
+    color: white;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.password-box button:hover {
+    background: #6366f1;
+}
+
+#error {
+    color: #f87171;
+    font-size: 14px;
+    margin-top: 12px;
+    display: none;
+}
+
+/* ================= MAIN DASHBOARD ================= */
+#mainContent{display:none;width:100%;justify-content:center;padding:28px 16px;box-sizing:border-box}
+.dashboard{width:min(1180px,100%)}
+.dashboard-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding:22px 24px;border-radius:22px;background:linear-gradient(135deg,#111827,#312e81);color:#fff;box-shadow:0 18px 55px rgba(0,0,0,.22)}
+.dashboard-header h1{margin:0;font-size:28px}.dashboard-header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}
+.dashboard-actions{display:flex;gap:10px;flex-wrap:wrap}.admin-top-btn{border:0;cursor:pointer;background:#111827;color:#fff;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px}.admin-top-btn:hover{background:#1f2937}.share-top-btn{border:0;cursor:pointer;background:#fff;color:#312e81;padding:12px 17px;border-radius:12px;font-weight:800;font-size:15px;box-shadow:0 5px 18px rgba(0,0,0,.14)}
+.links-card{background:#fff;border-radius:22px;padding:22px;box-shadow:0 12px 40px rgba(15,23,42,.10)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.section-head h2{margin:0;color:#172033}.section-head span{color:#667085;font-size:13px}
+.link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.link-card{display:flex!important;align-items:center;gap:12px;text-decoration:none;text-align:left!important;color:#172033!important;background:#f8fafc!important;border:1px solid #e5e7eb;padding:16px!important;margin:0!important;border-radius:16px!important;font-size:15px!important;font-weight:800!important;transition:.18s!important;min-height:72px;box-sizing:border-box}
+.link-card:hover{background:#eef2ff!important;border-color:#818cf8!important;transform:translateY(-2px)}.link-icon{font-size:26px;flex:none}.link-label{min-width:0;word-break:break-word}
+.file-btn{border:0;cursor:pointer;width:100%;display:block;text-align:center;color:#fff;background:#4f46e5;padding:15px;margin:10px 0;border-radius:12px;font-size:17px;font-weight:bold;transition:.2s}.file-btn:hover{background:#6366f1;transform:translateY(-2px)}
+@media(max-width:650px){#mainContent{padding:14px 10px}.dashboard-header{padding:18px;align-items:flex-start}.dashboard-header h1{font-size:23px}.link-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.link-card{min-height:68px;padding:12px!important;font-size:13px!important}.link-icon{font-size:22px}}
+
+/* FILE SHARING */
+.file-btn{border:0;cursor:pointer;width:100%;display:block;text-align:center;color:#fff;background:#4f46e5;padding:15px;margin:10px 0;border-radius:12px;font-size:17px;font-weight:bold;transition:.2s}.file-btn:hover{background:#6366f1;transform:translateY(-2px)}
+#fileModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100000;align-items:center;justify-content:center;padding:16px}.file-panel{width:100%;max-width:720px;max-height:90vh;overflow:auto;background:#1f2937;border-radius:20px;padding:22px;box-shadow:0 20px 80px rgba(0,0,0,.7);color:#fff}.file-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.file-head h2{margin:0}.close-file{border:0;background:#374151;color:#fff;width:42px;height:42px;border-radius:12px;font-size:22px;cursor:pointer}.upload-area{border:2px dashed #4f46e5;border-radius:16px;padding:22px;text-align:center;margin:18px 0;background:#111827}.upload-area input{width:100%;color:#ddd}.upload-action{margin-top:12px;border:0;background:#4f46e5;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;cursor:pointer}.upload-action:disabled{opacity:.5}.file-list{display:flex;flex-direction:column;gap:10px}.file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#111827;padding:12px;border-radius:12px}.video-thumb{width:110px;height:76px;border-radius:10px;overflow:hidden;background:#0b1220;position:relative;display:flex;align-items:center;justify-content:center;flex:none}.video-thumb img,.video-thumb video{width:100%;height:100%;object-fit:cover;display:block}.image-thumb{width:110px;height:76px;border-radius:10px;overflow:hidden;background:#eef2f7;position:relative;display:flex;align-items:center;justify-content:center;flex:none}.image-thumb img{width:100%;height:100%;object-fit:cover;display:block}.thumb-placeholder{font-size:34px}.video-thumb .thumb-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}.drive-file-main{display:flex;align-items:center;gap:12px;min-width:0}.drive-file-main>div:last-child{min-width:0}.file-info{min-width:0}.file-name{font-weight:bold;word-break:break-word}.file-meta{font-size:12px;color:#9ca3af;margin-top:4px}.file-actions{display:flex;gap:7px;flex-shrink:0}.file-actions button{border:0;border-radius:9px;padding:9px 11px;color:#fff;cursor:pointer}.download-btn{background:#059669}.delete-btn{background:#dc2626}.file-status{text-align:center;color:#9ca3af;padding:14px}@media(max-width:520px){.file-panel{padding:15px}.file-row{align-items:flex-start;flex-direction:column}.file-actions{width:100%}.file-actions button{flex:1}}
+
+/* Windows-style file sharing */
+.drive-panel{max-width:900px;background:#f5f7fb;color:#172033;padding:0;overflow:hidden}
+.drive-panel .file-head{padding:20px 22px;background:#fff;border-bottom:1px solid #e5e7eb}
+.drive-title{font-size:24px;font-weight:800}.drive-path{font-size:13px;color:#667085;margin-top:4px}
+.drive-toolbar{display:flex;gap:9px;flex-wrap:wrap;padding:13px 18px;background:#fff;border-bottom:1px solid #e5e7eb}
+.home-btn{font-weight:800;min-width:88px;border-color:#6366f1;background:#eef2ff}.drive-item{cursor:pointer}.drive-item .item-actions button{cursor:pointer}
+.drive-btn{border:1px solid #d8dee9;background:#fff;color:#172033;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer}
+.drive-btn:hover{background:#eef2ff}.drive-btn:disabled{opacity:.45;cursor:not-allowed}.upload-label{display:inline-flex;align-items:center}
+.drive-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;padding:18px;max-height:58vh;overflow:auto}
+.drive-item{background:#fff;border:1px solid #e1e6ef;border-radius:13px;padding:14px;min-height:125px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.05)}
+.drive-item:hover{border-color:#818cf8;transform:translateY(-1px)}
+.drive-icon{font-size:43px}.drive-name{font-weight:700;word-break:break-word}.drive-meta{font-size:12px;color:#667085;margin-top:4px}
+.drive-item .item-actions{display:flex;gap:6px;margin-top:8px}.item-actions button{border:0;border-radius:7px;padding:6px 8px;cursor:pointer;background:#eef2ff}
+.drive-empty{grid-column:1/-1;text-align:center;padding:45px;color:#667085}
+.folder-dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100001;align-items:center;justify-content:center;padding:16px}
+.folder-box{width:100%;max-width:390px;background:#fff;color:#172033;border-radius:17px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
+.folder-box h3{margin:0 0 16px}.folder-box input{width:100%;padding:12px;margin:6px 0;border:1px solid #d0d5dd;border-radius:9px;font-size:15px;outline:none}.folder-box input:focus{border-color:#6366f1}
+.folder-error{min-height:20px;color:#dc2626;font-size:13px;margin:5px 0}.folder-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.folder-actions button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer}.create-folder{background:#4f46e5;color:#fff}
+@media(max-width:700px){
+  #fileModal{padding:0;align-items:stretch;justify-content:stretch}
+  .drive-panel{width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;display:flex;flex-direction:column}
+  .drive-panel .file-head{padding:14px 14px 10px;flex:0 0 auto}
+  .drive-title{font-size:20px}.drive-path{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78vw}
+  .drive-toolbar{padding:9px 10px;gap:7px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;flex:0 0 auto}
+  .drive-toolbar::-webkit-scrollbar{display:none}
+  .drive-btn,.upload-label{white-space:nowrap;min-height:40px;padding:9px 11px}
+  .drive-toolbar .refresh-btn{min-width:42px}
+  #driveStatus{flex:0 0 auto;padding:7px 10px}
+  .drive-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:10px;max-height:none;flex:1;overflow:auto;align-content:start}
+  .drive-item{min-width:0;min-height:178px;padding:9px;border-radius:12px;overflow:hidden}
+  .drive-file-main{display:block}.drive-file-main>div:last-child{margin-top:7px}
+  .drive-icon{font-size:38px}.drive-name{font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .drive-meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .image-thumb,.video-thumb{width:100%;height:105px;border-radius:9px}
+  .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:7px;width:100%}
+  .item-actions button{min-width:0;padding:7px 3px;font-size:11px}
+  .folder-dialog{padding:12px}.folder-box{max-width:100%;border-radius:15px}
+}
+@media(max-width:380px){.drive-grid{grid-template-columns:1fr}.drive-item{min-height:200px}.image-thumb,.video-thumb{height:135px}}
+/* FILE SHARING PASSWORD */
+#fileSharePasswordModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200000;align-items:center;justify-content:center;padding:18px}
+.file-share-pass-box{width:100%;max-width:390px;background:#111827;border:1px solid rgba(129,140,248,.45);border-radius:20px;padding:24px;box-shadow:0 25px 90px rgba(0,0,0,.75);color:#fff}
+.file-share-pass-box h3{margin:0 0 8px;font-size:22px}.file-share-pass-box p{margin:0 0 18px;color:#9ca3af;font-size:14px}
+#fileSharePasswordInput{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:11px;border:1px solid #374151;background:#0b1220;color:#fff;outline:none;font-size:16px}
+#fileSharePasswordInput:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.15)}
+.file-share-pass-actions{display:flex;gap:10px;margin-top:14px}.file-share-pass-actions button{flex:1;border:0;border-radius:11px;padding:12px;cursor:pointer;font-weight:700}.file-share-pass-cancel{background:#374151;color:#fff}.file-share-pass-unlock{background:#4f46e5;color:#fff}
+#fileSharePasswordError{display:none;color:#fca5a5;font-size:13px;margin-top:10px}
+
+/* FOLDER PASSWORD POPUP */
+#folderPasswordModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400000;align-items:center;justify-content:center;padding:18px}
+.folder-pass-box{width:100%;max-width:390px;background:#111827;color:#fff;border:1px solid rgba(99,102,241,.55);border-radius:20px;padding:24px;box-shadow:0 25px 90px rgba(0,0,0,.8)}
+.folder-pass-box h3{margin:0 0 8px;font-size:21px}.folder-pass-box p{margin:0 0 16px;color:#9ca3af;font-size:14px}
+#folderPasswordPopupInput{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:11px;border:1px solid #374151;background:#0b1220;color:#fff;outline:none;font-size:16px}
+#folderPasswordPopupInput:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.15)}
+#folderPasswordPopupError{display:none;color:#fca5a5;font-size:13px;margin-top:10px}
+.folder-pass-actions{display:flex;gap:10px;margin-top:14px}.folder-pass-actions button{flex:1;border:0;border-radius:11px;padding:12px;cursor:pointer;font-weight:700}.folder-pass-cancel{background:#374151;color:#fff}.folder-pass-submit{background:#4f46e5;color:#fff}
+</style>
+
+<style>
+.view-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100010;align-items:center;justify-content:center;padding:16px}.view-panel{width:100%;max-width:1000px;max-height:92vh;background:#111827;border-radius:18px;padding:14px;color:#fff;display:flex;flex-direction:column;gap:10px}.view-head{display:flex;align-items:center;justify-content:space-between}.view-content{width:100%;max-height:78vh;object-fit:contain;border-radius:12px;background:#000}.view-close{border:0;background:#374151;color:#fff;border-radius:10px;padding:9px 13px;font-size:20px;cursor:pointer}.progress-wrap{display:none;margin:12px 0;background:#111827;border-radius:12px;padding:12px}.progress-top{display:flex;justify-content:space-between;font-size:13px;color:#d1d5db;margin-bottom:7px}.progress-bar{height:10px;background:#374151;border-radius:99px;overflow:hidden}.progress-fill{height:100%;width:0;background:#6366f1;transition:width .15s}.progress-text{font-size:12px;color:#9ca3af;margin-top:6px}.view-btn{background:#2563eb}.item-actions button{min-width:40px}
+
+.admin-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:300000;align-items:center;justify-content:center;padding:16px}.admin-box{width:100%;max-width:720px;max-height:90vh;overflow:auto;background:#fff;color:#172033;border-radius:20px;padding:22px;box-shadow:0 25px 90px rgba(0,0,0,.55)}.admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.admin-head h2{margin:0}.admin-head p{margin:6px 0 18px;color:#667085;font-size:13px}.admin-head>button{border:0;background:#eef2ff;border-radius:10px;font-size:24px;width:40px;height:40px;cursor:pointer}.admin-box input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:10px;font-size:15px;margin-top:6px}.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.admin-grid label,.admin-folders label{font-weight:700;font-size:13px}.admin-folders{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}.admin-folder-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;padding:10px;border-radius:10px}.admin-folder-name{font-weight:700;word-break:break-word}.admin-primary{border:0;background:#4f46e5;color:#fff;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;margin-top:12px}.admin-error{color:#dc2626;font-size:13px;min-height:18px;margin-top:7px}.admin-status{font-size:13px;color:#059669;min-height:18px;margin-top:10px}@media(max-width:650px){.admin-grid{grid-template-columns:1fr}.admin-folder-row{grid-template-columns:1fr}.admin-box{padding:16px;max-height:94vh}}
+
+.link-pass-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500000;align-items:center;justify-content:center;padding:18px}.link-pass-box{width:100%;max-width:390px;background:#111827;color:#fff;border:1px solid rgba(129,140,248,.55);border-radius:20px;padding:24px;box-shadow:0 25px 90px rgba(0,0,0,.8)}.link-pass-box h3{margin:0 0 8px}.link-pass-box p{margin:0 0 16px;color:#9ca3af;font-size:14px}.link-pass-box input{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:11px;border:1px solid #374151;background:#0b1220;color:#fff;outline:none;font-size:16px}.link-pass-actions{display:flex;gap:10px;margin-top:14px}.link-pass-actions button{flex:1;border:0;border-radius:11px;padding:12px;cursor:pointer;font-weight:700}.link-pass-cancel{background:#374151;color:#fff}.link-pass-submit{background:#4f46e5;color:#fff}.link-pass-error{display:none;color:#fca5a5;font-size:13px;margin-top:10px}
+.admin-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px}.admin-section-head h3{margin:0}.admin-add-btn{border:0;background:#059669;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.admin-add-btn:hover{background:#047857}.admin-links{display:flex;flex-direction:column;gap:10px;margin-top:12px}.admin-link-row{display:grid;grid-template-columns:58px 1.1fr 1.5fr 1fr auto auto;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;padding:10px;border-radius:10px}.admin-link-row input{margin-top:0!important}.admin-link-icon{text-align:center;font-size:22px}.admin-link-icon-input{width:58px!important;text-align:center;font-size:20px;padding:9px!important}.admin-link-delete{border:0;background:#fee2e2;color:#b91c1c;border-radius:9px;padding:9px 10px;cursor:pointer;font-weight:800}.admin-link-delete:hover{background:#fecaca}.admin-link-protect{display:flex!important;align-items:center;gap:7px;font-size:12px!important;white-space:nowrap}.admin-link-protect input{width:auto!important;margin:0!important}@media(max-width:650px){.admin-link-row{grid-template-columns:42px 1fr}.admin-link-row input:nth-of-type(1),.admin-link-row input:nth-of-type(2),.admin-link-protect{grid-column:1/-1}}
+</style>
 </head>
 
 <body>
-  <div id="desktop">
-    <div class="desktop-icons">
-      <div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">💻</span>This PC</div>
-      <div class="desktop-icon" ondblclick="openWindow('explorerWindow')"><span class="icon">📁</span>Files</div>
-      <div class="desktop-icon" ondblclick="openWindow('notepadWindow')"><span class="icon">📝</span>Notepad</div>
-      <div class="desktop-icon" ondblclick="openWindow('calculatorWindow')"><span class="icon">🧮</span>Calculator</div>
-      <div class="desktop-icon" ondblclick="openWindow('settingsWindow')"><span class="icon">⚙️</span>Settings</div>
-      <div class="desktop-icon" ondblclick="openWindow('adminWindow')"><span class="icon">🛠️</span>Main Admin</div>
-      <div class="desktop-icon" ondblclick="openWindow('linksWindow')"><span class="icon">🔗</span>My Links</div>
-      <div class="desktop-icon" ondblclick="openWindow('driveWindow')"><span class="icon">☁️</span>Shared Drive</div>
-      <div class="desktop-icon" ondblclick="openRecycleBin()"><span class="icon">🗑️</span>Recycle Bin</div>
-    </div>
-  </div>
-  <div class="start-menu" id="startMenu">
-    <div class="start-search"><input id="startSearch" placeholder="Type here to search"
-        oninput="searchApps(this.value)"></div>
-    <div class="start-content">
-      <div class="start-left"><b style="color:#aaa;font-size:13px">APPS</b>
-        <div class="start-app" data-name="file explorer" onclick="openWindow('explorerWindow')">📁 <span>File
-            Explorer</span></div>
-        <div class="start-app" data-name="notepad" onclick="openWindow('notepadWindow')">📝 <span>Notepad</span></div>
-        <div class="start-app" data-name="calculator" onclick="openWindow('calculatorWindow')">🧮
-          <span>Calculator</span></div>
-        <div class="start-app" data-name="settings" onclick="openWindow('settingsWindow')">⚙️ <span>Settings</span>
-        </div>
-        <div class="start-app" data-name="main admin" onclick="openWindow('adminWindow')">🛠️ <span>Main Admin</span>
-        </div>
-        <div class="start-app" data-name="links" onclick="openWindow('linksWindow')">🔗 <span>My Links</span></div>
-        <div class="start-app" data-name="drive file sharing" onclick="openWindow('driveWindow')">☁️ <span>Shared
-            Drive</span></div>
-        <div class="start-app" data-name="recycle bin" onclick="openRecycleBin()">🗑️ <span>Recycle Bin</span></div>
-      </div>
-      <div class="start-right"><b style="color:#aaa;font-size:13px">PINNED</b>
-        <div class="tiles">
-          <div class="tile" onclick="openWindow('explorerWindow')"><span class="tile-icon">📁</span>Files</div>
-          <div class="tile" onclick="openWindow('notepadWindow')"><span class="tile-icon">📝</span>Notepad</div>
-          <div class="tile" onclick="openWindow('calculatorWindow')"><span class="tile-icon">🧮</span>Calculator</div>
-          <div class="tile" onclick="openWindow('settingsWindow')"><span class="tile-icon">⚙️</span>Settings</div>
-          <div class="tile" onclick="openWindow('linksWindow')"><span class="tile-icon">🔗</span>Links</div>
-          <div class="tile" onclick="openWindow('driveWindow')"><span class="tile-icon">☁️</span>Drive</div>
-          <div class="tile" onclick="openBrowser()"><span class="tile-icon">🌐</span>Browser</div>
-          <div class="tile" onclick="openPhotos()"><span class="tile-icon">🖼️</span>Photos</div>
-        </div>
-      </div>
-    </div>
-    <div class="start-bottom">
-      <div class="profile">
-        <div class="avatar">A</div><span>Administrator</span>
-      </div>
-      <div class="power" onclick="powerMenu()">⏻</div>
-    </div>
-  </div>
 
-  <!-- Explorer -->
-  <div class="window" id="explorerWindow" style="left:110px;top:60px">
-    <div class="titlebar"><span class="title-icon">📁</span><span class="title-text">File Explorer</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('explorerWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('explorerWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('explorerWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="explorer">
-        <div class="sidebar">
-          <div class="side-item" onclick="navigateFolder('')">⭐ Quick Access</div>
-          <div class="side-item" onclick="navigateFolder('Desktop')">🖥️ Desktop</div>
-          <div class="side-item" onclick="navigateFolder('Documents')">📄 Documents</div>
-          <div class="side-item" onclick="navigateFolder('Downloads')">⬇️ Downloads</div>
-          <div class="side-item" onclick="navigateFolder('Pictures')">🖼️ Pictures</div>
-          <div class="side-item" onclick="navigateFolder('Videos')">🎬 Videos</div>
-          <div class="side-item" onclick="navigateFolder('Music')">🎵 Music</div>
-          <div class="side-item" onclick="openWindow('driveWindow')">☁️ Shared Drive</div>
-          <div class="side-item" onclick="openRecycleBin()">🗑️ Recycle Bin</div>
-        </div>
-        <div class="files-area">
-          <div class="address-bar"><button class="settings-button" onclick="goBackFolder()">←</button><input
-              id="currentPath" value="This PC" readonly></div>
-          <div class="toolbar"><button onclick="createFolder()">📁 New Folder</button><button
-              onclick="createTextFile()">📄 New Text</button><button onclick="triggerUpload()">⬆ Upload</button><button
-              onclick="renameSelected()">✏️ Rename</button><button onclick="copySelected()">📋 Copy</button><button
-              onclick="cutSelected()">✂️ Cut</button><button onclick="pasteItem()">📌 Paste</button><button
-              onclick="deleteSelected()">🗑️ Delete</button><button onclick="renderFiles()">🔄 Refresh</button></div>
-          <input id="fileInput" type="file" multiple hidden onchange="handleUpload(event)">
-          <div class="file-grid" id="fileGrid"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Notepad -->
-  <div class="window" id="notepadWindow" style="left:170px;top:90px">
-    <div class="titlebar"><span class="title-icon">📝</span><span class="title-text">Notepad</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('notepadWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('notepadWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('notepadWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="notepad">
-        <div class="notepad-menu"><button onclick="newNote()">New</button><button
-            onclick="openSavedNotes()">Open</button><button onclick="saveNote()">Save</button><button
-            onclick="downloadNote()">Save As</button><button onclick="selectAllNote()">Select All</button></div>
-        <textarea id="notepadText" spellcheck="false" placeholder="Type something..."></textarea>
-      </div>
-    </div>
-  </div>
-  <!-- Calculator -->
-  <div class="window" id="calculatorWindow" style="left:280px;top:90px;width:360px;height:510px">
-    <div class="titlebar"><span class="title-icon">🧮</span><span class="title-text">Calculator</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('calculatorWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('calculatorWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('calculatorWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="calculator"><input class="calc-display" id="calcDisplay" readonly>
-        <div class="calc-buttons"><button onclick="clearCalc()">C</button><button
-            onclick="calcInput('/')">÷</button><button onclick="calcInput('*')">×</button><button
-            onclick="calcBack()">⌫</button><button onclick="calcInput('7')">7</button><button
-            onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button
-            onclick="calcInput('-')">−</button><button onclick="calcInput('4')">4</button><button
-            onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button
-            onclick="calcInput('+')">+</button><button onclick="calcInput('1')">1</button><button
-            onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button
-            onclick="calculate()">=</button><button onclick="calcInput('0')">0</button><button
-            onclick="calcInput('.')">.</button><button onclick="calcInput('(')">(</button><button
-            onclick="calcInput(')')">)</button></div>
-      </div>
-    </div>
-  </div>
-  <!-- Settings -->
-  <div class="window" id="settingsWindow" style="left:150px;top:55px">
-    <div class="titlebar"><span class="title-icon">⚙️</span><span class="title-text">Settings</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('settingsWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('settingsWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('settingsWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="settings">
-        <div class="settings-nav">
-          <div class="settings-item" onclick="settingsPage('system')">🖥️ System</div>
-          <div class="settings-item" onclick="settingsPage('personalization')">🎨 Personalization</div>
-          <div class="settings-item" onclick="settingsPage('apps')">📱 Apps</div>
-          <div class="settings-item" onclick="settingsPage('account')">👤 Account</div>
-          <div class="settings-item" onclick="settingsPage('network')">🌐 Network</div>
-          <div class="settings-item" onclick="settingsPage('privacy')">🔒 Privacy</div>
-          <div class="settings-item" onclick="settingsPage('security')">🛡️ Security</div>
-          <div class="settings-item" onclick="settingsPage('about')">ℹ️ About</div>
-        </div>
-        <div class="settings-content" id="settingsContent"></div>
-      </div>
-    </div>
-  </div>
-  <!-- Admin -->
-  <div class="window" id="adminWindow" style="left:70px;top:45px;width:900px;height:600px">
-    <div class="titlebar"><span class="title-icon">🛠️</span><span class="title-text">Main Admin</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('adminWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('adminWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('adminWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body pad" id="adminBody">
-      <div class="card">
-        <h2>Main Admin Login</h2>
-        <p class="muted">Manage all passwords, project links and folder passwords.</p><input class="admin-input"
-          id="adminPasswordInput" type="password" placeholder="Admin password"><button class="primary"
-          style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button>
-      </div>
-    </div>
-  </div>
-  <!-- Links -->
-  <div class="window" id="linksWindow" style="left:100px;top:65px;width:850px;height:560px">
-    <div class="titlebar"><span class="title-icon">🔗</span><span class="title-text">My Links</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('linksWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('linksWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('linksWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="toolbar"><input id="linksSearch" oninput="filterWebosLinks(this.value)" placeholder="Search links..."
-          style="height:34px;flex:1;padding:0 10px;border:1px solid #bbb"><button onclick="loadWebosLinks()">🔄
-          Refresh</button></div>
-      <div id="linksGrid" class="link-cards"></div>
-    </div>
-  </div>
-  <!-- Drive -->
-  <div class="window" id="driveWindow" style="left:80px;top:45px;width:920px;height:600px">
-    <div class="titlebar"><span class="title-icon">☁️</span><span class="title-text">Shared Drive</span>
-      <div class="window-buttons">
-        <div class="win-btn" onclick="minimizeWindow('driveWindow')">−</div>
-        <div class="win-btn" onclick="maximizeWindow('driveWindow')">□</div>
-        <div class="win-btn close" onclick="closeWindow('driveWindow')">×</div>
-      </div>
-    </div>
-    <div class="window-body">
-      <div class="drive" id="driveBody">
-        <div class="card" style="margin:15px">
-          <h2>File Sharing</h2>
-          <p class="muted">Secure cloud Drive using the existing MongoDB/GridFS backend.</p><input class="admin-input"
-            id="drivePasswordInput" type="password" placeholder="File sharing password"><button class="primary"
-            style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="taskbar">
-    <div class="start-btn" onclick="toggleStart()">⊞</div>
-    <div class="search-btn" onclick="openStartSearch()">🔍 <span>Type here to search</span></div>
-    <div class="running-apps" id="runningApps"></div>
-    <div class="system-tray"><span>🌐</span><span>🔊</span><span>🔋</span>
-      <div class="clock">
-        <div id="time">00:00</div>
-        <div id="date">00/00/0000</div>
-      </div>
-    </div>
-  </div>
-  <div id="notification">
-    <h3 id="notificationTitle"></h3>
-    <div id="notificationText"></div><button onclick="closeNotification()">Close</button>
-  </div>
-  <div id="contextMenu">
-    <div class="context-item" onclick="location.reload()">🔄 Refresh</div>
-    <div class="context-item" onclick="openWindow('explorerWindow');createFolder()">📁 New Folder</div>
-    <div class="context-item" onclick="openWindow('explorerWindow');createTextFile()">📄 New Text Document</div>
-    <div class="context-item" onclick="openWindow('settingsWindow')">⚙️ Display Settings</div>
-    <div class="context-item" onclick="openWindow('adminWindow')">🛠️ Main Admin</div>
-  </div>
-  <div id="modal">
-    <div class="modal-box">
-      <div class="modal-title" id="modalTitle">Input</div>
-      <div class="modal-content"><input id="modalInput"></div>
-      <div class="modal-buttons"><button onclick="closeModal()">Cancel</button><button class="primary"
-          id="modalOK">OK</button></div>
-    </div>
-  </div>
-  <div id="webModal">
-    <div class="modal-box">
-      <div class="modal-title" id="webModalTitle">Input</div>
-      <div class="modal-content" id="webModalContent"></div>
-      <div class="modal-buttons"><button onclick="closeWebModal()">Cancel</button><button class="primary"
-          id="webModalOK">OK</button></div>
-    </div>
-  </div>
-  <script>
-    const DB_KEY = 'webos_files_v1', TRASH_KEY = 'webos_trash_v1', NOTES_KEY = 'webos_notes_v1', SETTINGS_KEY = 'webos_settings_v1'; let files = JSON.parse(localStorage.getItem(DB_KEY) || 'null'), trash = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]'), settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'), currentFolder = '', selectedFile = null, clipboard = null, z = 100;
-    const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8), saveFiles = () => localStorage.setItem(DB_KEY, JSON.stringify(files)), esc = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); if (!files) { files = ['Documents', 'Downloads', 'Pictures', 'Videos', 'Music', 'Desktop'].map(name => ({ id: id(), name, type: 'folder', parent: '' })); saveFiles() }
-    const apps = { explorerWindow: { name: 'File Explorer', icon: '📁' }, notepadWindow: { name: 'Notepad', icon: '📝' }, calculatorWindow: { name: 'Calculator', icon: '🧮' }, settingsWindow: { name: 'Settings', icon: '⚙️' }, adminWindow: { name: 'Main Admin', icon: '🛠️' }, linksWindow: { name: 'My Links', icon: '🔗' }, driveWindow: { name: 'Shared Drive', icon: '☁️' } };
-    function openWindow(id) { let w = document.getElementById(id); if (!w) return; w.style.display = 'block'; w.classList.add('active'); z++; w.style.zIndex = z; document.getElementById('startMenu').style.display = 'none'; updateTask(id); if (id === 'explorerWindow') renderFiles(); if (id === 'settingsWindow') settingsPage('system'); if (id === 'linksWindow') loadWebosLinks(); if (id === 'adminWindow') renderAdminLogin(); if (id === 'driveWindow') renderDriveLogin() }
-    function closeWindow(id) { let w = document.getElementById(id); if (w) { w.style.display = 'none'; w.classList.remove('active'); document.getElementById('task-' + id)?.remove() } } function minimizeWindow(id) { document.getElementById(id).style.display = 'none' } function maximizeWindow(id) { let w = document.getElementById(id); if (w.dataset.max === '1') { w.style.cssText = w.dataset.restore; w.dataset.max = '0' } else { w.dataset.restore = `left:${w.offsetLeft}px;top:${w.offsetTop}px;width:${w.offsetWidth}px;height:${w.offsetHeight}px`; w.style.left = '0'; w.style.top = '0'; w.style.width = '100%'; w.style.height = 'calc(100vh - 48px)'; w.dataset.max = '1' } } function updateTask(id) { let c = document.getElementById('runningApps'), b = document.getElementById('task-' + id); if (!b) { b = document.createElement('div'); b.className = 'task-icon active'; b.id = 'task-' + id; b.textContent = apps[id].icon; b.onclick = () => { let w = document.getElementById(id); w.style.display = w.style.display === 'none' ? 'block' : 'block'; z++; w.style.zIndex = z }; c.appendChild(b) } else b.classList.add('active') }
-    function toggleStart() { let m = document.getElementById('startMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block' } function openStartSearch() { document.getElementById('startMenu').style.display = 'block'; setTimeout(() => document.getElementById('startSearch').focus(), 30) } function searchApps(v) { document.querySelectorAll('.start-app').forEach(x => x.style.display = x.textContent.toLowerCase().includes(v.toLowerCase()) ? 'flex' : 'none') } document.addEventListener('click', e => { if (!e.target.closest('#startMenu,.start-btn,.search-btn')) document.getElementById('startMenu').style.display = 'none'; if (!e.target.closest('#contextMenu')) document.getElementById('contextMenu').style.display = 'none' });
-    function renderFiles() { let g = document.getElementById('fileGrid'); g.innerHTML = ''; document.getElementById('currentPath').value = currentFolder ? (files.find(f => f.id === currentFolder)?.name || 'Folder') : 'This PC'; let arr = files.filter(f => f.parent === currentFolder); if (currentFolder) { let b = document.createElement('div'); b.className = 'file'; b.innerHTML = '<span class=file-icon>↩️</span><div class=file-name>..</div>'; b.onclick = goBackFolder; g.appendChild(b) } if (!arr.length && !currentFolder) { g.innerHTML = '<div class=muted style="padding:30px">This folder is empty</div>'; return } arr.forEach(f => { let e = document.createElement('div'); e.className = 'file'; e.innerHTML = `<span class=file-icon>${f.type === 'folder' ? '📁' : '📄'}</span><div class=file-name>${esc(f.name)}</div>`; e.onclick = () => { document.querySelectorAll('.file.selected').forEach(x => x.classList.remove('selected')); e.classList.add('selected'); selectedFile = f.id }; e.ondblclick = () => f.type === 'folder' ? (currentFolder = f.id, selectedFile = null, renderFiles()) : openFile(f); g.appendChild(e) }) } function navigateFolder(n) { let f = files.find(x => x.name === n && x.type === 'folder' && x.parent === ''); currentFolder = n ? f?.id || '' : ''; renderFiles() } function goBackFolder() { if (!currentFolder) return renderFiles(); let f = files.find(x => x.id === currentFolder); currentFolder = f?.parent || ''; renderFiles() }
-    function askInput(t, l, v, cb) { document.getElementById('modalTitle').textContent = t; document.getElementById('modalInput').placeholder = l; document.getElementById('modalInput').value = v || ''; document.getElementById('modal').style.display = 'flex'; window.modalCB = cb; setTimeout(() => document.getElementById('modalInput').focus(), 20) } function closeModal() { document.getElementById('modal').style.display = 'none'; window.modalCB = null } document.getElementById('modalOK').onclick = () => { let v = document.getElementById('modalInput').value.trim(), cb = window.modalCB; closeModal(); cb && cb(v) }; document.getElementById('modalInput').onkeydown = e => { if (e.key === 'Enter') document.getElementById('modalOK').click(); if (e.key === 'Escape') closeModal() };
-    function createFolder() { askInput('New Folder', 'Folder name', 'New Folder', n => { if (!n) return; if (files.some(f => f.parent === currentFolder && f.name.toLowerCase() === n.toLowerCase())) return showNotification('Error', 'Folder already exists'); files.push({ id: id(), name: n, type: 'folder', parent: currentFolder }); saveFiles(); renderFiles() }) } function createTextFile() { askInput('New Text Document', 'File name', 'New Text Document.txt', n => { if (!n) return; files.push({ id: id(), name: n.endsWith('.txt') ? n : n + '.txt', type: 'text', parent: currentFolder, content: '' }); saveFiles(); renderFiles() }) } function triggerUpload() { document.getElementById('fileInput').click() } function handleUpload(e) { [...e.target.files].forEach(f => files.push({ id: id(), name: f.name, type: 'upload', parent: currentFolder, size: f.size })); saveFiles(); renderFiles(); e.target.value = ''; showNotification('Upload Complete', e.target.files?.length + ' file(s) added.') } function openFile(f) { if (f.type === 'text') { openWindow('notepadWindow'); notepadText.value = f.content || ''; notepadText.dataset.fileId = f.id } else showNotification(f.name, 'Stored in browser workspace.') } function renameSelected() { let f = files.find(x => x.id === selectedFile); if (!f) return showNotification('Rename', 'Select a file first.'); askInput('Rename', 'New name', f.name, n => { if (n) { f.name = n; saveFiles(); renderFiles() } }) } function copySelected() { let f = files.find(x => x.id === selectedFile); if (f) { clipboard = { id: f.id, mode: 'copy' }; showNotification('Copied', f.name) } } function cutSelected() { let f = files.find(x => x.id === selectedFile); if (f) { clipboard = { id: f.id, mode: 'cut' }; showNotification('Cut', f.name) } } function pasteItem() { if (!clipboard) return; let f = files.find(x => x.id === clipboard.id); if (!f) return; if (clipboard.mode === 'copy') files.push({ ...f, id: id(), name: f.name + ' - Copy', parent: currentFolder }); else { f.parent = currentFolder; clipboard = null } saveFiles(); renderFiles() } function deleteSelected() { let i = files.findIndex(x => x.id === selectedFile); if (i < 0) return; trash.push({ ...files[i], deletedAt: new Date().toISOString() }); files.splice(i, 1); localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); saveFiles(); selectedFile = null; renderFiles(); showNotification('Recycle Bin', 'Moved to Recycle Bin') } function openRecycleBin() { if (!trash.length) return showNotification('Recycle Bin', 'Recycle Bin is empty.'); if (confirm('Restore the latest deleted item?')) { files.push(trash.pop()); saveFiles(); localStorage.setItem(TRASH_KEY, JSON.stringify(trash)); renderFiles() } else { trash = []; localStorage.setItem(TRASH_KEY, '[]'); showNotification('Recycle Bin', 'Emptied.') } }
-    function newNote() { notepadText.value = ''; notepadText.dataset.fileId = '' } function saveNote() { let t = notepadText.value, fid = notepadText.dataset.fileId; if (fid) { let f = files.find(x => x.id === fid); if (f) { f.content = t; saveFiles(); return showNotification('Notepad', 'Saved.') } } askInput('Save Note', 'File name', 'Note.txt', n => { if (!n) return; let f = { id: id(), name: n.endsWith('.txt') ? n : n + '.txt', type: 'text', parent: currentFolder, content: t }; files.push(f); notepadText.dataset.fileId = f.id; saveFiles(); showNotification('Notepad', 'Saved.') }) } function openSavedNotes() { let a = files.filter(f => f.type === 'text'); if (!a.length) return showNotification('Notepad', 'No notes.'); let n = prompt(a.map((f, i) => `${i + 1}. ${f.name}`).join('\n') + '\n\nEnter number'); let f = a[+n - 1]; if (f) { notepadText.value = f.content || ''; notepadText.dataset.fileId = f.id } } function downloadNote() { let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([notepadText.value], { type: 'text/plain' })); a.download = 'Note.txt'; a.click() } function selectAllNote() { notepadText.select() }
-    function calcInput(v) { if (calcDisplay.value === 'Error') calcDisplay.value = ''; calcDisplay.value += v } function clearCalc() { calcDisplay.value = '' } function calcBack() { calcDisplay.value = calcDisplay.value.slice(0, -1) } function calculate() { try { if (!/^[0-9+\-*/.() ]+$/.test(calcDisplay.value)) throw 0; calcDisplay.value = Function('return (' + calcDisplay.value + ')')() } catch { calcDisplay.value = 'Error' } }
-    function settingsPage(p) { let c = document.getElementById('settingsContent'); if (p === 'personalization') c.innerHTML = `<h2>Personalization</h2><div class=card><h3>Dark Mode</h3><div class="switch ${document.body.classList.contains('dark') ? 'on' : ''}" onclick="toggleTheme()"></div></div>`; else c.innerHTML = `<h2>${p[0].toUpperCase() + p.slice(1)}</h2><div class=card><h3>WebOS</h3><p style="margin-top:10px">Windows-style WebOS is running. Cloud links, Admin and Shared Drive are connected to the existing backend.</p></div>` } function toggleTheme() { document.body.classList.toggle('dark'); settings.dark = document.body.classList.contains('dark'); localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } function openBrowser() { let u = prompt('Enter website URL', 'https://www.google.com'); if (u) window.open(u.startsWith('http') ? u : 'https://' + u, '_blank') } function openPhotos() { document.getElementById('fileInput').accept = 'image/*'; triggerUpload(); document.getElementById('fileInput').accept = '' } function powerMenu() { showNotification('WebOS', 'Lock option selected.') } function showNotification(t, x) { notificationTitle.textContent = t; notificationText.textContent = x; notification.style.display = 'block'; clearTimeout(window.nt); window.nt = setTimeout(closeNotification, 5000) } function closeNotification() { notification.style.display = 'none' }
-    desktop.addEventListener('contextmenu', e => { e.preventDefault(); contextMenu.style.left = Math.min(e.clientX, innerWidth - 225) + 'px'; contextMenu.style.top = Math.min(e.clientY, innerHeight - 200) + 'px'; contextMenu.style.display = 'block' });
+<!-- ================= PASSWORD ================= -->
 
-    /* WEBOS CLOUD INTEGRATION */
-    let webosAdminToken = sessionStorage.getItem('webosAdminToken') || '', webosFileToken = sessionStorage.getItem('webosFileToken') || '', webosFolderToken = sessionStorage.getItem('webosFolderToken') || '', driveFolder = null, webosLinks = [];
-    const api = (p, o = {}) => fetch(p, o); const ah = () => webosFileToken ? { 'Authorization': 'Bearer ' + webosFileToken } : {}; const fh = () => webosFolderToken ? { 'X-Folder-Token': webosFolderToken } : {};
-    function renderAdminLogin() { document.getElementById('adminBody').innerHTML = `<div class=card><h2>Main Admin Login</h2><p class=muted>Manage passwords, all project links and folder passwords.</p><input class=admin-input id=adminPasswordInput type=password placeholder="Admin password"><button class=primary style="padding:8px 14px;border:0" onclick="webosAdminLogin()">Login</button></div>` } async function webosAdminLogin() { let p = document.getElementById('adminPasswordInput').value; let r = await api('/api/admin-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) }); let d = await r.json(); if (!r.ok) return showNotification('Admin Login', d.error || 'Wrong password'); webosAdminToken = d.token; sessionStorage.setItem('webosAdminToken', webosAdminToken); loadAdminPanel() } async function loadAdminPanel() { let r = await api('/api/admin/passwords', { headers: { Authorization: 'Bearer ' + webosAdminToken } }); let d = await r.json(); if (!r.ok) return renderAdminLogin(); webosLinks = d.links || []; document.getElementById('adminBody').innerHTML = `<div class=toolbar><button class=primary onclick="saveAdminPanel()">💾 Save All</button><button onclick="addAdminLinkRow()">➕ Add Link</button><button onclick="loadAdminPanel()">🔄 Reload</button></div><div class=admin-grid><div class=admin-section><h3>Passwords</h3><label>Main Page Password</label><input class=admin-input id=apPage value="${esc(d.pagePassword)}"><label>File Sharing Password</label><input class=admin-input id=apFile value="${esc(d.fileSharePassword)}"><label>Admin Password</label><input class=admin-input id=apAdmin value="${esc(d.adminPassword)}"><h3>Folder Passwords</h3><div id=folderPassList>${(d.folders || []).map(f => `<div style="margin:8px 0"><b>${esc(f.name)}</b><input class=admin-input data-folder-id="${f.id}" value="${esc(f.password || '')}" placeholder="Folder password"></div>`).join('') || '<span class=muted>No folders</span>'}</div></div><div class=admin-section style="grid-column:1/-1"><h3>All Project Links</h3><div class=link-row style="font-weight:bold"><span>Icon</span><span>Name</span><span>URL</span><span>Password</span><span>Delete</span></div><div id=adminLinks>${webosLinks.map((x, i) => adminLinkRow(x, i)).join('')}</div></div></div>` } function adminLinkRow(x, i) { return `<div class=link-row data-i="${i}"><input value="${esc(x.icon || '🔗')}" data-k=icon><input value="${esc(x.name || '')}" data-k=name><input value="${esc(x.url || '')}" data-k=url><input value="${esc(x.password || '')}" data-k=password><button onclick="this.closest('.link-row').remove()">🗑️</button></div>` } function addAdminLinkRow() { document.getElementById('adminLinks').insertAdjacentHTML('beforeend', adminLinkRow({ icon: '🔗', name: 'New Link', url: 'https://', password: '' }, webosLinks.length)) } async function saveAdminPanel() { let links = [...document.querySelectorAll('#adminLinks .link-row')].map(r => { let o = {}; r.querySelectorAll('[data-k]').forEach(i => o[i.dataset.k] = i.value.trim()); o.protected = !!o.password; return o }); let folders = [...document.querySelectorAll('[data-folder-id]')].map(i => ({ id: i.dataset.folderId, password: i.value })); let body = { pagePassword: apPage.value, fileSharePassword: apFile.value, adminPassword: apAdmin.value, links, folders }; let r = await api('/api/admin/passwords', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + webosAdminToken }, body: JSON.stringify(body) }); let d = await r.json(); if (!r.ok) return showNotification('Admin', d.error || 'Save failed'); showNotification('Admin', 'All settings saved.'); webosLinks = links; loadWebosLinks() }
-    async function loadWebosLinks() { let r = await api('/api/links'); let d = await r.json(); webosLinks = Array.isArray(d) ? d : []; renderWebosLinks(webosLinks) } function renderWebosLinks(a) { document.getElementById('linksGrid').innerHTML = a.map((x, i) => `<div class=link-card><div class=link-icon>${esc(x.icon || '🔗')}</div><b>${esc(x.name)}</b><div class=muted style="margin-top:5px">${esc(x.url)}</div><button onclick="openProtectedWebosLink(${i})">Open</button></div>`).join('') || '<div class=muted>No links found.</div>' } function filterWebosLinks(v) { renderWebosLinks(webosLinks.filter(x => (x.name + ' ' + x.url).toLowerCase().includes(v.toLowerCase()))) } async function openProtectedWebosLink(i) { let x = webosLinks[i]; if (!x) return; if (!x.protected) return window.open(x.url, '_blank'); openWebModal('Link Password', `<p>Enter password for <b>${esc(x.name)}</b></p><input id=linkPwd type=password class=admin-input>`); webModalOK.onclick = async () => { let r = await api('/api/link-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id, password: linkPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Link', d.error || 'Wrong password'); closeWebModal(); window.open(d.url || x.url, '_blank') } }
-    function renderDriveLogin() { document.getElementById('driveBody').innerHTML = `<div class=card style="margin:15px"><h2>File Sharing Drive</h2><p class=muted>Unlock the cloud file-sharing area.</p><input class=admin-input id=drivePasswordInput type=password placeholder="File sharing password"><button class=primary style="padding:8px 14px;border:0" onclick="webosDriveLogin()">Unlock Drive</button></div>` } async function webosDriveLogin() { let p = document.getElementById('drivePasswordInput').value; let r = await api('/api/file-share-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) }); let d = await r.json(); if (!r.ok) return showNotification('Drive', d.error || 'Wrong password'); webosFileToken = d.token; sessionStorage.setItem('webosFileToken', webosFileToken); driveFolder = null; showDrive() } async function showDrive() { document.getElementById('driveBody').innerHTML = `<div class=drive><div class=drivebar><button onclick="driveGoHome()">🏠 Home</button><button onclick="driveGoBack()">← Back</button><button onclick="driveLoad()">🔄 Refresh</button><button onclick="driveNewFolder()">📁 New Folder</button><button onclick="document.getElementById('driveFileInput').click()">⬆ Upload Files</button><button onclick="document.getElementById('driveFolderInput').click()">📂 Upload Folder</button></div><div class=drive-path id=drivePath>Shared Drive / Home</div><div class=drive-grid id=driveGrid></div><input id=driveFileInput type=file multiple hidden onchange="driveUploadFiles(event)"><input id=driveFolderInput type=file webkitdirectory directory multiple hidden onchange="driveUploadFolder(event)"></div>`; driveLoad() } async function driveLoad() { let g = document.getElementById('driveGrid'); if (!g) return; g.innerHTML = '<div class=muted>Loading...</div>'; let pid = driveFolder?.id || ''; let h = ah(); if (webosFolderToken) h = { ...h, ...fh() }; let [fr, rr] = await Promise.all([api('/api/folders?parentId=' + encodeURIComponent(pid), { headers: h }), api('/api/files?folderId=' + encodeURIComponent(pid), { headers: h })]); if (fr.status === 401 || rr.status === 401) return renderDriveLogin(); if (fr.status === 403) { return openFolderPassword(driveFolder) } let folders = await fr.json(), files = await rr.json(); document.getElementById('drivePath').textContent = 'Shared Drive / ' + (driveFolder?.name || 'Home'); g.innerHTML = [...folders.map(f => `<div class=drive-item ondblclick="driveOpenFolder('${f.id}','${esc(f.name).replaceAll("'", "&#39;")}','${f.protected}')"><div class=drive-icon>🔒</div><div class=drive-name>${esc(f.name)}</div></div>`), ...files.map(f => `<div class=drive-item ondblclick="driveViewFile('${f.id}','${esc(f.name).replaceAll("'", "&#39;")}','${esc(f.type || '')}')"><div class=drive-icon>${fileIcon(f.type)}</div><div class=drive-name>${esc(f.name)}</div><div class=muted>${fmtSize(f.size)}</div></div>`)].join('') || '<div class=muted>No files or folders.</div>' } function fileIcon(t) { t = String(t || '').toLowerCase(); if (t.startsWith('image/')) return '🖼️'; if (t.startsWith('video/')) return '🎬'; if (t.startsWith('audio/')) return '🎵'; if (t.includes('pdf')) return '📕'; if (t.includes('zip') || t.includes('compressed') || t.includes('rar') || t.includes('7z')) return '🗜️'; if (t.includes('android') || t.includes('apk')) return '📱'; if (t.includes('msdownload') || t.includes('executable') || t.includes('windows')) return '💻'; return '📄' } function fmtSize(n) { n = Number(n || 0); return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB' } async function driveOpenFolder(id, name, protectedFlag) { if (protectedFlag) return openFolderPassword({ id, name, protected: true }); driveFolder = { id, name }; webosFolderToken = ''; sessionStorage.removeItem('webosFolderToken'); driveLoad() } function openFolderPassword(f) { openWebModal('Folder Password', `<p>Folder <b>${esc(f?.name || '')}</b> is protected.</p><input id=folderPwd type=password class=admin-input>`); webModalOK.onclick = async () => { let r = await api('/api/folders/' + f.id + '/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ password: folderPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Folder', d.error || 'Wrong password'); webosFolderToken = d.token; sessionStorage.setItem('webosFolderToken', d.token); closeWebModal(); driveFolder = { id: f.id, name: f.name }; driveLoad() } } function driveGoHome() { driveFolder = null; webosFolderToken = ''; sessionStorage.removeItem('webosFolderToken'); driveLoad() } function driveGoBack() { if (!driveFolder) return; driveFolder = null; driveLoad() } function driveNewFolder() { openWebModal('New Drive Folder', '<input id=newFolderName class=admin-input placeholder="Folder name"><input id=newFolderPwd class=admin-input placeholder="Optional password" type=password>'); webModalOK.onclick = async () => { let r = await api('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ name: newFolderName.value, parentId: driveFolder?.id || null, password: newFolderPwd.value }) }); let d = await r.json(); if (!r.ok) return showNotification('Drive', d.error || 'Create failed'); closeWebModal(); driveLoad() } } async function driveUploadFiles(e) { try { for (const f of [...e.target.files]) await driveUploadOne(f, f.name); showNotification('Upload', 'All selected files uploaded successfully.') } catch (err) { showNotification('Upload', err.message || 'Upload failed.') } finally { e.target.value = ''; driveLoad() } } async function driveUploadFolder(e) { try { for (const f of [...e.target.files]) { let path = (f.webkitRelativePath || f.name).replace(/\\/g, '/'); let parts = path.split('/').filter(Boolean); let name = parts.pop(); let parent = driveFolder?.id || null; for (const p of parts) { let r = await api('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ name: p, parentId: parent, password: '' }) }); let d = await r.json(); if (!r.ok) throw new Error(d.error || `Could not create folder ${p}`); parent = d.folder?.id || d.id || parent } await driveUploadOne(f, name, parent) } showNotification('Upload', 'Folder uploaded successfully.') } catch (err) { showNotification('Upload', err.message || 'Folder upload failed.') } finally { e.target.value = ''; driveLoad() } } async function driveUploadOne(f, name, parent = driveFolder?.id || null) {
-      const CHUNK = 3 * 1024 * 1024;
-      const total = Math.max(1, Math.ceil(f.size / CHUNK));
-      const uploadId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random()).replace('.', ''));
-      let index = 0, uploaded = 0;
-      while (index < total) {
-        const blob = f.slice(index * CHUNK, Math.min((index + 1) * CHUNK, f.size));
-        const fd = new FormData();
-        fd.append('chunk', blob, name);
-        fd.append('uploadId', uploadId);
-        fd.append('index', String(index));
-        fd.append('total', String(total));
-        fd.append('name', name);
-        fd.append('mime', f.type || 'application/octet-stream');
-        fd.append('size', String(f.size));
-        if (parent) fd.append('folderId', parent);
-        let headers = { ...ah() };
-        if (parent && webosFolderToken) headers['X-Folder-Token'] = webosFolderToken;
-        const r = await api('/api/files/chunk', { method: 'POST', headers, body: fd });
-        if (!r.ok) { let d = await r.json().catch(() => ({})); throw new Error(d.error || 'Upload failed'); }
-        uploaded += blob.size; index++;
-        const pct = f.size ? Math.round(uploaded / f.size * 100) : 100;
-        showNotification('Upload', `${name} — ${pct}%`);
-      }
-    } async function driveViewFile(id, name, type) { let url = '/api/files/' + id + '/view?token=' + encodeURIComponent(webosFileToken) + (webosFolderToken ? '&folderToken=' + encodeURIComponent(webosFolderToken) : ''); let content = type.startsWith('image/') ? `<img src="${url}" style="max-width:100%;max-height:65vh">` : type.startsWith('video/') ? `<video src="${url}" controls style="max-width:100%;max-height:65vh"></video>` : type.startsWith('audio/') ? `<audio src="${url}" controls style="width:100%"></audio>` : type.includes('pdf') ? `<iframe src="${url}" style="width:100%;height:65vh;border:0"></iframe>` : `<p><b>${esc(name)}</b></p><p class=muted>Preview is available when the browser supports this file type.</p>`; openWebModal(name, content); webModalOK.style.display = 'inline-block'; webModalOK.textContent = 'Download'; webModalOK.onclick = () => driveDownload(id, name) } async function driveDownload(id, name) { let r = await api('/api/files/' + id + '/download?token=' + encodeURIComponent(webosFileToken) + (webosFolderToken ? '&folderToken=' + encodeURIComponent(webosFolderToken) : ''), { headers: ah() }); if (!r.ok) return showNotification('Download', 'Download failed'); let b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) }
-    function openWebModal(t, html) { webModalTitle.textContent = t; webModalContent.innerHTML = html; webModal.style.display = 'flex'; webModalOK.style.display = 'inline-block'; webModalOK.textContent = 'OK' } function closeWebModal() { webModal.style.display = 'none'; webModalOK.onclick = null }
+<div id="passwordScreen">
 
-    /* window dragging */
-    document.querySelectorAll('.titlebar').forEach(bar => { let drag = false, ox = 0, oy = 0; bar.onmousedown = e => { let w = bar.closest('.window'); if (w.dataset.max === '1') return; drag = true; ox = e.clientX - w.offsetLeft; oy = e.clientY - w.offsetTop; z++; w.style.zIndex = z }; document.addEventListener('mousemove', e => { if (drag) { let w = bar.closest('.window'); w.style.left = e.clientX - ox + 'px'; w.style.top = e.clientY - oy + 'px' } }); document.addEventListener('mouseup', () => drag = false) });
-    function updateClock() { let d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0'), s = String(d.getSeconds()).padStart(2, '0'); let ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; time.textContent = `${String(h).padStart(2, '0')}:${m}:${s} ${ap}`; date.textContent = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` } setInterval(updateClock, 1000); updateClock(); if (settings.dark) document.body.classList.add('dark'); renderFiles();
-  </script>
+    <div class="password-box">
+
+        <h2>🔐 Protected Page</h2>
+
+        <p>Enter password to continue</p>
+
+        <input
+            type="password"
+            id="passwordInput"
+            placeholder="Enter Password"
+            autocomplete="off"
+        >
+
+        <button onclick="checkPassword()">
+            🔓 Unlock
+        </button>
+
+        <div id="error">
+            ❌ Wrong password
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= MAIN CONTENT ================= -->
+
+<div id="mainContent"><div class="dashboard">
+  <div class="dashboard-header"><div><h1>🚀 My Dashboard</h1><p>All your apps, websites and files in one place.</p></div><div class="dashboard-actions"><button class="admin-top-btn" onclick="openAdmin()">⚙️ Main Admin</button><button class="share-top-btn" onclick="openFileModal()">📁 File Sharing</button></div></div>
+  <div class="links-card"><div class="section-head"><h2>🔗 My Links</h2><span>Welcome</span></div><div id="linkGrid" class="link-grid"></div></div></div></div></div>
+
+
+<!-- ================= MAIN ADMIN ================= -->
+<div id="adminModal" class="admin-modal" aria-hidden="true">
+  <div class="admin-box">
+    <div class="admin-head"><div><h2>⚙️ Main Admin</h2><p>Enter password below:</p></div><button onclick="closeAdmin()">×</button></div>
+    <div id="adminLoginArea">
+      <input id="adminLoginPassword" type="password" placeholder="Admin password" autocomplete="off">
+      <div id="adminLoginError" class="admin-error"></div>
+      <button class="admin-primary" onclick="adminLogin()">🔓 Open Admin</button>
+    </div>
+    <div id="adminPanel" style="display:none">
+      <div class="admin-grid">
+        <label>Main Page Password<input id="adminPagePassword" type="text"></label>
+        <label>File Sharing Password<input id="adminFilePassword" type="text"></label>
+        <label>Admin Password<input id="adminAdminPassword" type="text"></label>
+      </div>
+      <div class="admin-section-head"><h3>🔗 Link Passwords</h3><button type="button" class="admin-add-btn" onclick="addAdminLink()">➕ Add New Link</button></div>
+      <div id="adminLinks" class="admin-links"></div>
+      <h3>📁 Folder Passwords</h3>
+      <div id="adminFolders" class="admin-folders"></div>
+      <div id="adminSaveStatus" class="admin-status"></div>
+      <button class="admin-primary" onclick="saveAdminPasswords()">💾 Save All Passwords</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LINK PASSWORD ================= -->
+<div id="linkPasswordModal" class="link-pass-modal" aria-hidden="true">
+  <div class="link-pass-box" role="dialog" aria-modal="true">
+    <h3 id="linkPasswordTitle">🔐 Link Password</h3>
+    <p id="linkPasswordText">Enter the password to open this link.</p>
+    <input id="linkPasswordInput" type="password" autocomplete="off" placeholder="Enter password">
+    <div id="linkPasswordError" class="link-pass-error"></div>
+    <div class="link-pass-actions"><button class="link-pass-cancel" onclick="closeLinkPassword()">Cancel</button><button class="link-pass-submit" onclick="unlockLink()">🔓 Open Link</button></div>
+  </div>
+</div>
+
+<!-- ================= FILE SHARING PASSWORD ================= -->
+<div id="fileSharePasswordModal" aria-hidden="true">
+  <div class="file-share-pass-box" role="dialog" aria-modal="true" aria-labelledby="fileSharePassTitle">
+    <h3 id="fileSharePassTitle">🔐 File Sharing Password</h3>
+    <p>Enter the password to open File Sharing.</p>
+    <input id="fileSharePasswordInput" type="password" autocomplete="off" placeholder="Enter password">
+    <div id="fileSharePasswordError">❌ Wrong password</div>
+    <div class="file-share-pass-actions">
+      <button class="file-share-pass-cancel" type="button" onclick="closeFileSharePassword()">Cancel</button>
+      <button class="file-share-pass-unlock" type="button" onclick="unlockFileSharing()">🔓 Unlock</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ================= FOLDER PASSWORD POPUP ================= -->
+<div id="folderPasswordModal" aria-hidden="true">
+  <div class="folder-pass-box" role="dialog" aria-modal="true" aria-labelledby="folderPasswordPopupTitle">
+    <h3 id="folderPasswordPopupTitle">🔐 Folder Password</h3>
+    <p id="folderPasswordPopupText">Enter the password to continue.</p>
+    <input id="folderPasswordPopupInput" type="password" autocomplete="off" placeholder="Enter folder password">
+    <div id="folderPasswordPopupError">❌ Wrong folder password</div>
+    <div class="folder-pass-actions">
+      <button class="folder-pass-cancel" type="button" onclick="closeFolderPasswordPopup()">Cancel</button>
+      <button class="folder-pass-submit" type="button" onclick="submitFolderPasswordPopup()">🔓 Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FILE SHARING MODAL ================= -->
+<div id="fileModal" onclick="if(event.target===this) closeFileModal()" aria-hidden="true">
+  <div class="file-panel drive-panel" role="dialog" aria-modal="true">
+    <div class="file-head">
+      <div>
+        <div class="drive-title">📁 File Sharing</div>
+        <div id="drivePath" class="drive-path">This PC</div>
+      </div>
+      <button class="close-file" type="button" onclick="closeFileModal()">×</button>
+    </div>
+
+    <div class="drive-toolbar">
+      <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
+      <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">🏠 Home</button>
+      <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
+      <label class="drive-btn upload-label">📤 Upload Files
+        <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()">
+      </label>
+      <label class="drive-btn upload-label">📂 Upload Folder
+        <input type="file" id="folderInput" webkitdirectory directory multiple hidden onchange="uploadSelectedFolder()">
+      </label>
+      <div id="uploadProgress" class="progress-wrap"><div class="progress-top"><span id="uploadFileName">Uploading...</span><strong id="uploadPct">0%</strong></div><div class="progress-bar"><div id="uploadFill" class="progress-fill"></div></div><div class="progress-text">Large files and videos are uploaded in 3 MB chunks. Use “Upload Folder” to upload an entire folder at once while preserving its subfolders. There is no app-level video size limit.</div></div>
+      <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
+    </div>
+
+    <div id="driveStatus" class="file-status"></div>
+    <div id="driveList" class="drive-grid"></div>
+  </div>
+</div>
+
+<div id="folderDialog" class="folder-dialog" aria-hidden="true">
+  <div class="folder-box">
+    <h3>📁 Create New Folder</h3>
+    <input id="folderName" type="text" maxlength="100" placeholder="Folder name *" autocomplete="off">
+    <input id="folderPassword" type="password" placeholder="Folder password (optional)" autocomplete="new-password">
+    <div id="folderError" class="folder-error"></div>
+    <div class="folder-actions">
+      <button onclick="closeFolderDialog()">Cancel</button>
+      <button class="create-folder" onclick="createFolder()">Create Folder</button>
+    </div>
+  </div>
+</div>
+
+<div id="viewModal" class="view-modal" aria-hidden="true"><div class="view-panel"><div class="view-head"><strong id="viewTitle">Preview</strong><button class="view-close" onclick="closeView()">×</button></div><div id="viewBody"></div></div></div>
+<script>
+
+
+/* MAIN ADMIN */
+async function openAdmin(){const m=document.getElementById('adminModal');m.style.display='flex';m.setAttribute('aria-hidden','false');document.getElementById('adminLoginArea').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminLoginPassword').value='';document.getElementById('adminLoginError').textContent='';setTimeout(()=>document.getElementById('adminLoginPassword').focus(),50);}
+function closeAdmin(){const m=document.getElementById('adminModal');m.style.display='none';m.setAttribute('aria-hidden','true');}
+async function adminLogin(){const p=document.getElementById('adminLoginPassword').value,e=document.getElementById('adminLoginError');try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Wrong admin password');sessionStorage.setItem('adminToken',d.token);document.getElementById('adminLoginArea').style.display='none';document.getElementById('adminPanel').style.display='block';await loadAdminPasswords();}catch(x){e.textContent='❌ '+x.message;}}
+async function loadAdminPasswords(){const r=await fetch('/api/admin/passwords',{headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load passwords');document.getElementById('adminPagePassword').value=d.pagePassword;document.getElementById('adminFilePassword').value=d.fileSharePassword;document.getElementById('adminAdminPassword').value=d.adminPassword;renderAdminLinks(d.links||[]);document.getElementById('adminFolders').innerHTML=d.folders.length?d.folders.map(f=>`<div class="admin-folder-row"><div class="admin-folder-name">📁 ${escapeHtml(f.name)}${f.protected?' 🔐':''}</div><label>Password<input class="admin-folder-pass" data-id="${escapeHtml(f.id)}" type="text" value="${escapeHtml(f.password)}" placeholder="No password"></label></div>`).join(''):'<div class="admin-status">No folders created yet.</div>';}
+function renderAdminLinks(links){const box=document.getElementById('adminLinks');if(!box)return;box.innerHTML=links.map((l,i)=>`<div class="admin-link-row" data-id="${escapeHtml(l.id)}"><input class="admin-link-icon-input" type="text" value="${escapeHtml(l.icon||'🔗')}" placeholder="🔗" maxlength="4"><input class="admin-link-name" type="text" value="${escapeHtml(l.name)}" placeholder="Link name"><input class="admin-link-url" type="text" value="${escapeHtml(l.url)}" placeholder="https://..."><input class="admin-link-password" type="text" value="${escapeHtml(l.password||'')}" placeholder="Password (optional)"><label class="admin-link-protect"><input class="admin-link-protected" type="checkbox" ${l.protected?'checked':''}> Password protection</label><button type="button" class="admin-link-delete" onclick="deleteAdminLink(this)">🗑️</button></div>`).join('');}
+function collectAdminLinks(){return [...document.querySelectorAll('#adminLinks .admin-link-row')].map(row=>({id:row.dataset.id,name:row.querySelector('.admin-link-name').value.trim(),url:row.querySelector('.admin-link-url').value.trim(),icon:row.querySelector('.admin-link-icon-input').value.trim()||'🔗',password:row.querySelector('.admin-link-password').value,protected:row.querySelector('.admin-link-protected').checked}));}
+function addAdminLink(){const box=document.getElementById('adminLinks');const id='link-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);const row=document.createElement('div');row.className='admin-link-row';row.dataset.id=id;row.innerHTML=`<input class="admin-link-icon-input" type="text" value="🔗" placeholder="🔗" maxlength="4"><input class="admin-link-name" type="text" placeholder="Link name"><input class="admin-link-url" type="text" placeholder="https://..."><input class="admin-link-password" type="text" placeholder="Password (optional)"><label class="admin-link-protect"><input class="admin-link-protected" type="checkbox"> Password protection</label><button type="button" class="admin-link-delete" onclick="deleteAdminLink(this)">🗑️</button>`;box.appendChild(row);row.querySelector('.admin-link-name').focus();}
+function deleteAdminLink(btn){const row=btn.closest('.admin-link-row');if(row)row.remove();}
+async function saveAdminPasswords(){const status=document.getElementById('adminSaveStatus');const folders=[...document.querySelectorAll('.admin-folder-pass')].map(x=>({id:x.dataset.id,password:x.value}));try{const r=await fetch('/api/admin/passwords',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('adminToken')},body:JSON.stringify({pagePassword:document.getElementById('adminPagePassword').value,fileSharePassword:document.getElementById('adminFilePassword').value,adminPassword:document.getElementById('adminAdminPassword').value,folders,links:collectAdminLinks()})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Save failed');status.textContent='✅ All passwords saved. New passwords are active now.';sessionStorage.removeItem('fileShareToken');sessionStorage.removeItem('adminToken');}catch(e){status.textContent='❌ '+e.message;}}
+document.getElementById('adminLoginPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+
+/* LINK PASSWORDS */
+let pendingLink=null;
+async function loadLinks(){const grid=document.getElementById('linkGrid');if(!grid)return;try{const r=await fetch('/api/links');const links=await r.json();if(!r.ok)throw Error(links.error||'Could not load links');grid.innerHTML=links.map(l=>`<button class="link-card" type="button" onclick="openProtectedLink('${escapeHtml(l.id)}')"><span class="link-icon">${escapeHtml(l.icon||'🔗')}</span><span class="link-label">${escapeHtml(l.name)}</span>${l.protected?'<span style="margin-left:auto;font-size:13px">🔐</span>':''}</button>`).join('');}catch(e){grid.innerHTML='<div class="drive-empty">❌ Could not load links</div>';}}
+async function openProtectedLink(id){try{const r=await fetch('/api/links');const links=await r.json();const l=links.find(x=>String(x.id)===String(id));if(!l)return;if(!l.protected){leaveProtectedPage();window.location.href=l.url;return;}pendingLink=l;const m=document.getElementById('linkPasswordModal');document.getElementById('linkPasswordTitle').textContent='🔐 '+l.name;document.getElementById('linkPasswordText').textContent='Enter the password to open this link.';document.getElementById('linkPasswordInput').value='';document.getElementById('linkPasswordError').style.display='none';m.style.display='flex';m.setAttribute('aria-hidden','false');setTimeout(()=>document.getElementById('linkPasswordInput').focus(),50);}catch(e){alert('Could not open link');}}
+function closeLinkPassword(){const m=document.getElementById('linkPasswordModal');m.style.display='none';m.setAttribute('aria-hidden','true');pendingLink=null;}
+async function unlockLink(){if(!pendingLink)return;const inp=document.getElementById('linkPasswordInput'),err=document.getElementById('linkPasswordError');try{const r=await fetch('/api/link-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pendingLink.id,password:inp.value})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Wrong password');closeLinkPassword();leaveProtectedPage();window.location.href=d.url;}catch(e){err.textContent='❌ '+e.message;err.style.display='block';inp.value='';inp.focus();}}
+document.getElementById('linkPasswordInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')unlockLink();});
+
+/* PAGE PASSWORD */
+async function checkPassword(){
+ const input=document.getElementById("passwordInput"),error=document.getElementById("error");
+ try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:input.value})});if(!r.ok)throw Error();const d=await r.json();sessionStorage.setItem("linkPageToken",d.token);sessionStorage.setItem("linkPageUnlocked","true");document.getElementById("passwordScreen").style.display="none";document.getElementById("mainContent").style.display="flex";error.style.display="none";}
+ catch(e){error.style.display="block";input.value="";input.focus();}
+}
+
+async function openFileModal(){
+ const existing=sessionStorage.getItem("fileShareToken");
+ if(existing){await showFileSharing();return;}
+ const pm=document.getElementById("fileSharePasswordModal");
+ pm.style.display="flex";pm.setAttribute("aria-hidden","false");
+ const inp=document.getElementById("fileSharePasswordInput");
+ const err=document.getElementById("fileSharePasswordError");
+ err.style.display="none";inp.value="";setTimeout(()=>inp.focus(),50);
+}
+function closeFileSharePassword(){const pm=document.getElementById("fileSharePasswordModal");pm.style.display="none";pm.setAttribute("aria-hidden","true");}
+async function unlockFileSharing(){
+ const inp=document.getElementById("fileSharePasswordInput"),err=document.getElementById("fileSharePasswordError");
+ try{
+   const r=await fetch("/api/file-share-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:inp.value})});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||"Wrong password");
+   sessionStorage.setItem("fileShareToken",d.token);
+   closeFileSharePassword();
+   await showFileSharing();
+ }catch(e){err.textContent="❌ "+(e.message||"Wrong password");err.style.display="block";inp.value="";inp.focus();}
+}
+async function showFileSharing(){
+ const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();
+}
+function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");sessionStorage.removeItem("fileShareToken");}
+document.getElementById("fileSharePasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")unlockFileSharing();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeFileSharePassword();closeFolderPasswordPopup();closeView();}});
+function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
+function folderHeaders(){const h=authHeaders();if(window.currentFolderToken)h["X-Folder-Token"]=window.currentFolderToken;return h;}
+function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(1)+" MB";}
+function escapeHtml(x){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+async function loadDrive(){
+ const list=document.getElementById("driveList"),status=document.getElementById("driveStatus");
+ list.innerHTML="";status.textContent="Loading…";
+ try{
+  const pid=window.currentFolder||"", qs=pid?"?parentId="+encodeURIComponent(pid):"";
+  const [fr,ff]=await Promise.all([
+   fetch("/api/folders"+qs,{headers:folderHeaders()}),
+   fetch("/api/files"+(pid?"?folderId="+encodeURIComponent(pid):""),{headers:folderHeaders()})
+  ]);
+  if(fr.status===403||ff.status===403)throw new Error("Folder is locked");
+  if(!fr.ok||!ff.ok)throw new Error("Could not load files");
+  const folders=await fr.json(),files=await ff.json();
+  document.getElementById("drivePath").textContent=window.currentFolderName||"This PC";
+  document.getElementById("backBtn").disabled=window.driveStack.length===0;
+  document.getElementById("homeBtn").disabled=false;
+  let out=folders.map(f=>`<div class="drive-item" onclick="openFolder('${f.id}','${escapeHtml(f.name).replace(/'/g,"&#39;")}')">
+    <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
+    <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
+  out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
+    <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div></div>
+    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
+  list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";hydrateVideoThumbnails();
+ }catch(e){status.textContent="❌ "+e.message;}
+}
+function selectDriveItem(el){document.querySelectorAll(".drive-item").forEach(x=>x.style.outline="");el.style.outline="2px solid #818cf8";}
+function hydrateVideoThumbnails(){
+ document.querySelectorAll('.video-thumb video').forEach(v=>{
+   v.addEventListener('loadedmetadata',()=>{
+     try{ if(v.duration && isFinite(v.duration)){ v.currentTime=Math.min(0.15, Math.max(0,v.duration/20)); } }catch{}
+   },{once:true});
+ });
+}
+
+async function openFolder(id,name){
+ const r=await fetch("/api/folders/"+id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:""})});
+ if(r.ok){const d=await r.json();enterFolder(id,name,d.token);return;}
+ openFolderPasswordPopup({mode:"open",id,name});
+}
+let folderPasswordPopupState=null;
+function openFolderPasswordPopup(state){
+ folderPasswordPopupState=state;
+ const m=document.getElementById("folderPasswordModal"),i=document.getElementById("folderPasswordPopupInput"),e=document.getElementById("folderPasswordPopupError"),t=document.getElementById("folderPasswordPopupText");
+ document.getElementById("folderPasswordPopupTitle").textContent=state.mode==="delete"?"🔐 Delete Folder Password":"🔐 Folder Password";
+ t.textContent=state.mode==="delete"?`Enter the password to delete "${state.name}".`:`Enter the password for "${state.name}".`;
+ i.value="";e.style.display="none";m.style.display="flex";m.setAttribute("aria-hidden","false");setTimeout(()=>i.focus(),50);
+}
+function closeFolderPasswordPopup(){const m=document.getElementById("folderPasswordModal");m.style.display="none";m.setAttribute("aria-hidden","true");folderPasswordPopupState=null;}
+async function submitFolderPasswordPopup(){
+ const st=folderPasswordPopupState;if(!st)return;
+ const i=document.getElementById("folderPasswordPopupInput"),e=document.getElementById("folderPasswordPopupError"),p=i.value;
+ if(!p){e.textContent="❌ Please enter password";e.style.display="block";return;}
+ try{
+  const rr=await fetch("/api/folders/"+st.id+"/unlock",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({password:p})});
+  const d=await rr.json().catch(()=>({}));
+  if(!rr.ok)throw new Error(d.error||"Wrong folder password");
+  closeFolderPasswordPopup();
+  if(st.mode==="delete"){
+   const headers={...authHeaders(),"X-Folder-Token":d.token};
+   const dr=await fetch("/api/folders/"+st.id,{method:"DELETE",headers});
+   const dd=await dr.json().catch(()=>({}));
+   if(dr.ok)loadDrive();else alert("❌ "+(dd.error||"Delete failed"));
+  }else enterFolder(st.id,st.name,d.token);
+ }catch(x){e.textContent="❌ "+(x.message||"Wrong folder password");e.style.display="block";i.value="";i.focus();}
+}
+
+function enterFolder(id,name,token){window.driveStack.push({id:window.currentFolder,name:window.currentFolderName,token:window.currentFolderToken});window.currentFolder=id;window.currentFolderName=name;window.currentFolderToken=token;loadDrive();}
+function goBack(){if(!window.driveStack.length)return;const x=window.driveStack.pop();window.currentFolder=x.id||null;window.currentFolderName=x.name||null;window.currentFolderToken=x.token||null;loadDrive();}
+function goHome(){window.driveStack=[];window.currentFolder=null;window.currentFolderName=null;window.currentFolderToken=null;loadDrive();}
+function showNewFolder(){document.getElementById("folderDialog").style.display="flex";document.getElementById("folderDialog").setAttribute("aria-hidden","false");document.getElementById("folderName").value="";document.getElementById("folderPassword").value="";document.getElementById("folderError").textContent="";setTimeout(()=>document.getElementById("folderName").focus(),50);}
+function closeFolderDialog(){const d=document.getElementById("folderDialog");d.style.display="none";d.setAttribute("aria-hidden","true");}
+async function createFolder(){
+ const name=document.getElementById("folderName").value.trim(),pass=document.getElementById("folderPassword").value;
+ const er=document.getElementById("folderError");
+ if(!name){er.textContent="Folder name is required.";document.getElementById("folderName").focus();return;}
+ try{
+  const r=await fetch("/api/folders",{method:"POST",headers:{...folderHeaders(),"Content-Type":"application/json"},body:JSON.stringify({name,password:pass,parentId:window.currentFolder||null})});
+  const d=await r.json();if(!r.ok)throw Error(d.error||"Could not create folder");closeFolderDialog();loadDrive();
+ }catch(e){er.textContent="❌ "+e.message;}
+}
+function showUploadProgress(show,file){const w=document.getElementById('uploadProgress');if(!w)return;w.style.display=show?'block':'none';if(file){document.getElementById('uploadFileName').textContent=file.name;document.getElementById('uploadPct').textContent='0%';document.getElementById('uploadFill').style.width='0%';}}
+async function uploadSelectedFiles(){
+ const input=document.getElementById('fileInput');
+ const files=Array.from(input.files||[]);
+ if(!files.length)return;
+ await uploadFileBatch(files, false);
+ input.value='';
+}
+async function uploadSelectedFolder(){
+ const input=document.getElementById('folderInput');
+ const files=Array.from(input.files||[]);
+ if(!files.length){ alert('❌ Folder ma koi file/data malyu nathi.'); return; }
+ // webkitRelativePath is the important part: it contains ROOT/subfolder/file.ext.
+ // Upload every selected file while rebuilding that exact folder tree on the server.
+ const supported=files.filter(f=>f && typeof f.size==='number' && f.webkitRelativePath);
+ if(!supported.length){ alert('❌ Browser e folder data read nathi karyu. Chrome/Edge ma fari try karo.'); return; }
+ await uploadFileBatch(supported, true);
+ input.value='';
+}
+
+function showUploadProgress(show,file){
+ const w=document.getElementById('uploadProgress');if(!w)return;
+ w.style.display=show?'block':'none';
+ if(file){
+   document.getElementById('uploadFileName').textContent=file.name;
+   document.getElementById('uploadPct').textContent='0%';
+   document.getElementById('uploadFill').style.width='0%';
+ }
+}
+
+function setBatchProgress(done,total,currentFile,currentPct){
+ const w=document.getElementById('uploadProgress');
+ if(!w)return;
+ w.style.display='block';
+ const pct=total ? Math.min(100,Math.round(((done+currentPct/100)/total)*100)) : 0;
+ document.getElementById('uploadFileName').textContent =
+   total>1 ? `Uploading ${done+1} of ${total}: ${currentFile}` : currentFile;
+ document.getElementById('uploadPct').textContent=pct+'%';
+ document.getElementById('uploadFill').style.width=pct+'%';
+}
+
+async function getOrCreateFolder(name,parentId,parentToken){
+ const key=(parentId||'ROOT')+'|'+name;
+ window.batchFolderCache=window.batchFolderCache||new Map();
+ if(window.batchFolderCache.has(key))return window.batchFolderCache.get(key);
+
+ const headers={...authHeaders(),'Content-Type':'application/json'};
+ if(parentToken)headers['X-Folder-Token']=parentToken;
+
+ // Reuse an existing folder when possible.
+ const qr=await fetch('/api/folders'+(parentId?'?parentId='+encodeURIComponent(parentId):''),{
+   headers: parentToken ? {'Authorization':headers.Authorization,'X-Folder-Token':parentToken} : {'Authorization':headers.Authorization}
+ });
+ if(qr.ok){
+   const existing=await qr.json();
+   const found=existing.find(x=>x.name===name);
+   if(found){
+     if(found.protected) throw new Error(`Folder "${name}" already exists and is password protected. Open/unlock it first.`);
+     window.batchFolderCache.set(key,found.id);
+     return found.id;
+   }
+ }
+ const r=await fetch('/api/folders',{
+   method:'POST',
+   headers,
+   body:JSON.stringify({name,parentId:parentId||null,password:''})
+ });
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok){
+   // Another upload/tab may have created it between the GET and POST; try once more.
+   if(r.status===409){
+     const rr=await fetch('/api/folders'+(parentId?'?parentId='+encodeURIComponent(parentId):''),{
+       headers: parentToken ? {'Authorization':headers.Authorization,'X-Folder-Token':parentToken} : {'Authorization':headers.Authorization}
+     });
+     if(rr.ok){
+       const list=await rr.json(), found=list.find(x=>x.name===name);
+       if(found){window.batchFolderCache.set(key,found.id);return found.id;}
+     }
+   }
+   throw new Error(d.error||`Could not create folder "${name}"`);
+ }
+ const id=d.folder.id;
+ window.batchFolderCache.set(key,id);
+ return id;
+}
+
+async function ensureRelativeFolder(relativePath){
+ const parts=relativePath.split('/').filter(Boolean);
+ if(!parts.length)return {id:window.currentFolder||null,token:window.currentFolderToken||null};
+ let parent=window.currentFolder||null;
+ let token=window.currentFolderToken||null;
+ for(const part of parts){
+   const id=await getOrCreateFolder(part,parent,token);
+   parent=id;
+   // If this folder already existed and is protected, getOrCreateFolder may return its id.
+   // Unlock it so the following file upload can actually write into it.
+   let nextToken=null;
+   try{
+     const rr=await fetch('/api/folders/'+encodeURIComponent(id)+'/unlock',{
+       method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({password:''})
+     });
+     if(rr.ok){const dd=await rr.json();nextToken=dd.token||null;}
+   }catch(e){}
+   token=nextToken;
+ }
+ return {id:parent,token};
+}
+
+function uploadOneChunked(file,folderId,onProgress){
+ return new Promise((resolve,reject)=>{
+   const CHUNK=3*1024*1024;
+   const total=Math.max(1,Math.ceil(file.size/CHUNK));
+   const uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
+   let index=0,uploaded=0,finished=false;
+
+   const fail=(msg)=>{if(finished)return;finished=true;reject(new Error(msg));};
+   const send=()=>{
+     const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
+     const fd=new FormData();
+     fd.append('chunk',blob,file.name);
+     fd.append('uploadId',uploadId);
+     fd.append('index',String(index));
+     fd.append('total',String(total));
+     fd.append('name',file.name);
+     fd.append('mime',file.type||'application/octet-stream');
+     fd.append('size',String(file.size));
+     if(folderId)fd.append('folderId',folderId);
+
+     const xhr=new XMLHttpRequest();
+     xhr.open('POST','/api/files/chunk');
+     const hh=authHeaders();
+     if(folderId){
+       const folderToken=file.__folderToken || (window.currentFolder===folderId ? window.currentFolderToken : null);
+       if(folderToken)hh['X-Folder-Token']=folderToken;
+     }
+     Object.keys(hh).forEach(k=>xhr.setRequestHeader(k,hh[k]));
+     xhr.upload.onprogress=e=>{
+       if(e.lengthComputable && onProgress)
+         onProgress(Math.min(99,Math.round(((uploaded+e.loaded)/Math.max(1,file.size))*100)));
+     };
+     xhr.onload=()=>{
+       let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch(e){}
+       if(xhr.status>=200&&xhr.status<300){
+         uploaded+=blob.size;index++;
+         if(index<total)send();
+         else{finished=true;if(onProgress)onProgress(100);resolve(d);}
+       }else fail(d.error||'Upload failed');
+     };
+     xhr.onerror=()=>fail('Upload failed. Please try again.');
+     xhr.ontimeout=()=>fail('Upload timed out. Please try again.');
+     xhr.send(fd);
+   };
+   send();
+ });
+}
+
+async function uploadFileBatch(files,isFolder){
+ const cleanFiles=files.filter(f=>f && typeof f.size==='number');
+ if(!cleanFiles.length)return;
+
+ const w=document.getElementById('uploadProgress');
+ const title=isFolder ? '📂 Uploading folder' : '📤 Uploading files';
+ document.getElementById('uploadFileName').textContent=title;
+ w.style.display='block';
+ window.batchFolderCache=new Map();
+
+ let done=0;
+ try{
+   for(const file of cleanFiles){
+     let targetFolder=window.currentFolder||null;
+     if(isFolder){
+       // Preserve the selected folder's complete subfolder structure.
+       const rel=String(file.webkitRelativePath||'').replace(/\\/g,'/');
+       const parts=rel.split('/').filter(Boolean);
+       parts.pop(); // filename
+       if(parts.length){
+         const target=await ensureRelativeFolder(parts.join('/'));
+         targetFolder=target.id;
+         if(target.token) file.__folderToken=target.token;
+       }
+     }
+
+     setBatchProgress(done,cleanFiles.length,file.name,0);
+     await uploadOneChunked(file,targetFolder,pct=>{
+       setBatchProgress(done,cleanFiles.length,file.name,pct);
+     });
+     done++;
+     setBatchProgress(done,cleanFiles.length,file.name,100);
+   }
+   document.getElementById('uploadPct').textContent='100% — Complete';
+   document.getElementById('uploadFill').style.width='100%';
+   await loadDrive();
+   setTimeout(()=>showUploadProgress(false),1200);
+ }catch(e){
+   alert('❌ '+e.message);
+   setUploadErrorState();
+ }
+}
+
+function setUploadErrorState(){
+ const pct=document.getElementById('uploadPct'),fill=document.getElementById('uploadFill');
+ if(pct)pct.textContent='Upload stopped';
+ if(fill)fill.style.width='0%';
+ setTimeout(()=>showUploadProgress(false),1800);
+}
+
+function viewFile(id,name,type){const modal=document.getElementById('viewModal'),body=document.getElementById('viewBody');document.getElementById('viewTitle').textContent=name;const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||'');const ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'';const url='/api/files/'+id+'/view?token='+token+ft;let el;if(type.startsWith('image/'))el=document.createElement('img');else if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.autoplay=true;}else if(type.startsWith('audio/')){el=document.createElement('audio');el.controls=true;el.autoplay=true;}else {el=document.createElement('iframe');el.style.height='78vh';el.style.border='0';el.style.background='#fff';}el.src=url;el.className='view-content';body.replaceChildren(el);modal.style.display='flex';modal.setAttribute('aria-hidden','false');}
+function closeView(){const m=document.getElementById('viewModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.getElementById('viewBody').replaceChildren();}
+async function downloadFile(id){
+ const r=await fetch("/api/files/"+id+"/download",{headers:folderHeaders()});if(!r.ok){alert("Download failed");return;}
+ const b=await r.blob(),cd=r.headers.get("Content-Disposition")||"",m=cd.match(/filename\\*=UTF-8''([^;]+)/),name=m?decodeURIComponent(m[1]):"download";
+ const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+async function deleteFile(id){if(!confirm("Delete this file?"))return;const r=await fetch("/api/files/"+id,{method:"DELETE",headers:folderHeaders()});if(r.ok)loadDrive();else alert("Delete failed");}
+async function deleteFolder(id){
+ const folderName=(window.driveItems||[]).find(x=>x.id===id)?.name||"this folder";
+ if(!confirm("Delete this folder?\n\nIf it is password protected, a secure popup will ask for its password."))return;
+ let headers=authHeaders();
+ let r=await fetch("/api/folders/"+id,{method:"DELETE",headers});
+ if(r.status===403){openFolderPasswordPopup({mode:"delete",id,name:folderName});return;}
+ const d=await r.json().catch(()=>({}));
+ if(r.ok)loadDrive();else alert("❌ "+(d.error||"Delete failed"));
+}
+/* ENTER KEY */
+
+document.getElementById("passwordInput").addEventListener("keydown", function(e) {
+
+    if (e.key === "Enter") {
+        checkPassword();
+    }
+
+});
+
+
+/* ================= DEVTOOLS / INSPECT BLOCK ================= */
+
+/* Right Click */
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+});
+
+
+/* Keyboard Shortcuts */
+document.addEventListener("keydown", function(e) {
+
+    /* F12 */
+    if (e.key === "F12") {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + I */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "i"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + J */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "j"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + Shift + C */
+    if (
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "c"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+    /* Ctrl + U */
+    if (
+        e.ctrlKey &&
+        e.key.toLowerCase() === "u"
+    ) {
+        e.preventDefault();
+        return false;
+    }
+
+});
+
+
+/* ================= DEVTOOLS DETECTION ================= */
+
+setInterval(function() {
+
+    const threshold = 160;
+
+    if (
+        window.outerWidth - window.innerWidth > threshold ||
+        window.outerHeight - window.innerHeight > threshold
+    ) {
+
+        document.body.innerHTML = `
+            <div style="
+                min-height:100vh;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                background:#111827;
+                color:white;
+                font-family:Arial;
+                text-align:center;
+            ">
+                <div>
+                    <h1>⚠️ Access Blocked</h1>
+                    <p>Please close Developer Tools and refresh the page.</p>
+                </div>
+            </div>
+        `;
+
+    }
+
+}, 1000);
+
+
+/* Leaving any dashboard link clears the page session so returning asks for the password again. */
+function leaveProtectedPage(){
+  sessionStorage.removeItem("fileShareToken");
+  sessionStorage.removeItem("linkPageUnlocked");
+}
+
+/* ================= SESSION ================= */
+
+/* Keep password only while the protected dashboard session is active. External links clear it. */
+loadLinks();
+
+if (sessionStorage.getItem("linkPageUnlocked") === "true") {
+
+    document.getElementById("passwordScreen").style.display = "none";
+    document.getElementById("mainContent").style.display = "flex";
+
+}
+
+
+</script>
 </body>
-
 </html>

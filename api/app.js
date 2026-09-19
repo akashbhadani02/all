@@ -1,4 +1,4 @@
-const express = require('express'), path = require('path'), multer = require('multer'), crypto = require('crypto'), fs = require('fs'), archiver = require('archiver');
+const express = require('express'), path = require('path'), multer = require('multer'), crypto = require('crypto'), fs = require('fs');
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
 const app = express(), upload = multer({ limits: { files: 1 }, storage: multer.diskStorage({ destination: (req, file, cb) => cb(null, '/tmp'), filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '-' + Date.now()) }) });
 let dbPromise;
@@ -68,55 +68,6 @@ app.put('/api/admin/links',adminAuth,async(q,s)=>{try{const incoming=Array.isArr
 app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders', fileAuth, async (q, s) => { try { const name = String(q.body?.name || '').trim(), pass = String(q.body?.password || ''), raw = q.body?.parentId || null; if (!name) return s.status(400).json({ error: 'Folder name is required' }); if (name.length > 100) return s.status(400).json({ error: 'Folder name is too long' }); if (/[\\/]/.test(name)) return s.status(400).json({ error: 'Folder name cannot contain / or \\' }); const db = await mongo(), parentId = raw && oid(raw) ? oid(raw) : null; if (raw && !parentId) return s.status(400).json({ error: 'Invalid parent folder' }); if (parentId) { const par = await db.collection('folders').findOne({ _id: parentId }); if (!par) return s.status(404).json({ error: 'Parent folder not found' }); if ((par.password || par.passwordHash) && !folderUnlocked(q, parentId.toString())) return s.status(403).json({ error: 'Parent folder is locked' }); } if (await db.collection('folders').findOne({ name, parentId })) return s.status(409).json({ error: 'A folder with this name already exists here' }); const d = { name, parentId, createdAt: new Date() }; if (pass) { d.password = pass; } const r = await db.collection('folders').insertOne(d); s.json({ ok: true, folder: { id: r.insertedId.toString(), name, parentId: parentId?.toString() || null, protected: !!pass } }); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders/:id/unlock', fileAuth, async (q, s) => { try { const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await (await mongo()).collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); const supplied = String(q.body?.password || ''); if (!f.password && !f.passwordHash || folderPasswordMatches(f, supplied)) { if (!f.password && f.passwordHash) { await (await mongo()).collection('folders').updateOne({ _id: id }, { $set: { password: supplied }, $unset: { passwordHash: '', passwordSalt: '' } }); } return s.json({ ok: true, token: folderToken(id.toString()) }); } s.status(401).json({ error: 'Wrong folder password' }); } catch (e) { s.status(500).json({ error: e.message }); } });
-app.get('/api/folders/:id/download', fileAuth, async (q, s) => {
- try {
-  const id = oid(q.params.id);
-  if (!id) return s.status(400).json({ error: 'Invalid folder id' });
-  const db = await mongo();
-  const root = await db.collection('folders').findOne({ _id: id });
-  if (!root) return s.status(404).json({ error: 'Folder not found' });
-  if ((root.password || root.passwordHash) && !folderUnlocked(q, id.toString())) return s.status(403).json({ error: 'Folder is locked' });
-
-  const folderIds = [id];
-  for (let i = 0; i < folderIds.length; i++) {
-   const children = await db.collection('folders').find({ parentId: folderIds[i] }).project({ _id: 1 }).toArray();
-   for (const child of children) {
-    const childFolder = await db.collection('folders').findOne({ _id: child._id }, { projection: { _id: 1 } });
-    if (childFolder) folderIds.push(child._id);
-   }
-  }
-  const folderMap = new Map();
-  const allFolders = await db.collection('folders').find({ _id: { $in: folderIds } }).toArray();
-  for (const f of allFolders) folderMap.set(f._id.toString(), f);
-
-  const files = await db.collection('uploads.files').find({ 'metadata.folderId': { $in: folderIds.map(x => x.toString()) } }).project({ _id: 1, filename: 1, metadata: 1 }).toArray();
-  const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-  const zipName = `${String(root.name).replace(/[^a-zA-Z0-9._ -]/g, '_')}.zip`;
-  s.statusCode = 200;
-  s.setHeader('Content-Type', 'application/zip');
-  s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`);
-  s.setHeader('Cache-Control', 'no-store');
-  const archive = archiver('zip', { zlib: { level: 6 } });
-  archive.on('error', err => { if (!s.headersSent) s.status(500).json({ error: err.message }); else s.destroy(err); });
-  archive.pipe(s);
-
-  function folderPath(fid) {
-   const parts = []; let cur = folderMap.get(String(fid));
-   while (cur) { parts.unshift(String(cur.name)); if (!cur.parentId) break; cur = folderMap.get(String(cur.parentId)); }
-   if (parts.length && parts[0] === String(root.name)) parts.shift();
-   return parts.join('/');
-  }
-  for (const file of files) {
-   const rel = [String(root.name), folderPath(file.metadata?.folderId), String(file.filename || 'file')].filter(Boolean).join('/').replace(/\\+/g, '/');
-   archive.append(bucket.openDownloadStream(file._id), { name: rel });
-  }
-  await archive.finalize();
- } catch (e) {
-  if (!s.headersSent) s.status(500).json({ error: e.message || 'Folder download failed' });
-  else s.destroy(e);
- }
-});
-
 app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
  const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' });
  const db = await mongo(), root = await db.collection('folders').findOne({ _id: id });
@@ -146,7 +97,7 @@ app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo()
 // MongoDB/storage quotas, browser/device constraints, or plan limits.
 const chunkUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 4 * 1024 * 1024, files: 1, fields: 30 }
+  limits: { fileSize: 4 * 1024 * 1024, files: 1 }
 });
 
 app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s) => {
@@ -155,8 +106,8 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     const uploadId = String(q.body?.uploadId || '');
     const index = Number(q.body?.index);
     const total = Number(q.body?.total);
-    const name = String(q.body?.name || q.file?.originalname || 'file').slice(0, 1024) || 'file';
-    const mime = String(q.body?.mime || q.file?.mimetype || 'application/octet-stream').slice(0, 200) || 'application/octet-stream';
+    const name = String(q.body?.name || 'file');
+    const mime = String(q.body?.mime || 'application/octet-stream');
     const size = Number(q.body?.size || 0);
     const fid = q.body?.folderId || null;
     if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || index >= total || total > 100000000)
