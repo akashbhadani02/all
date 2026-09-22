@@ -27,6 +27,46 @@ async function getSettings() {
  return d;
 }
 
+// Dedicated admin media folder.
+// All existing image/video/audio files are moved here when the admin opens it.
+// New media uploaded at the root is automatically stored here as well.
+async function ensureAdminMediaFolder(db) {
+  let f = await db.collection('folders').findOne({ name: 'Media', parentId: null });
+  if (!f) {
+    const r = await db.collection('folders').insertOne({
+      name: 'Media',
+      parentId: null,
+      password: 'media',
+      adminOnly: true,
+      createdAt: new Date()
+    });
+    f = { _id: r.insertedId, name: 'Media', parentId: null, password: 'media', adminOnly: true };
+  } else {
+    await db.collection('folders').updateOne(
+      { _id: f._id },
+      { $set: { password: 'media', adminOnly: true, updatedAt: new Date() }, $unset: { passwordHash: '', passwordSalt: '' } }
+    );
+    f.password = 'media';
+    f.adminOnly = true;
+  }
+
+  const mediaTypes = /^(image|video|audio)\//i;
+  const mediaFiles = await db.collection('uploads.files')
+    .find({ contentType: { $regex: mediaTypes } })
+    .project({ _id: 1, 'metadata.folderId': 1 })
+    .toArray();
+
+  const folderId = f._id.toString();
+  if (mediaFiles.length) {
+    const ids = mediaFiles.map(x => x._id);
+    await db.collection('uploads.files').updateMany(
+      { _id: { $in: ids } },
+      { $set: { 'metadata.folderId': folderId, 'metadata.adminMediaFolder': true } }
+    );
+  }
+  return { ...f, movedFiles: mediaFiles.length };
+}
+
 const DEFAULT_LINKS = [
  {id:'my-cv',name:'My CV',url:'https://akashbhadani02.github.io/Akash-bhadani/',icon:'👤',password:'',protected:false},
  {id:'aducate-app',name:'Aducate App',url:'https://www.aducate.online',icon:'🎓',password:'',protected:false},
@@ -70,7 +110,15 @@ app.post('/api/login', async (q,s)=>{try{const p=String(q.body?.password||''),d=
 app.post('/api/file-share-login', async (q,s)=>{try{const p=String(q.body?.password||''),d=await getSettings();if(p!==String(d.fileSharePassword))return s.status(401).json({error:'Wrong File Sharing password'});s.json({token:await fileShareTokenValue(p)});}catch(e){s.status(500).json({error:e.message});}});
 app.post('/api/admin-login', async(q,s)=>{try{const p=String(q.body?.password||''),d=await getSettings();if(p!==String(d.adminPassword))return s.status(401).json({error:'Wrong admin password'});s.json({token:adminToken(p)});}catch(e){s.status(500).json({error:e.message});}});
 async function adminAuth(req,res,next){try{const t=getAuthToken(req),d=await getSettings();if(t===adminToken(d.adminPassword))return next();res.status(401).json({error:'Admin access required'});}catch(e){res.status(500).json({error:e.message});}}
-app.get('/api/admin/passwords',adminAuth,async(q,s)=>{try{const d=await getSettings();const db=await mongo();const folders=await db.collection('folders').find({}).sort({name:1}).toArray();const links=await getLinks();s.json({pagePassword:String(d.pagePassword),fileSharePassword:String(d.fileSharePassword),adminPassword:String(d.adminPassword),links,folders:folders.map(f=>({id:f._id.toString(),name:f.name,password:String(f.password||''),protected:!!(f.password||f.passwordHash)}))});}catch(e){s.status(500).json({error:e.message});}});
+app.post('/api/admin/media-folder', adminAuth, async(q,s)=>{
+  try {
+    const db=await mongo(), d=await getSettings(), f=await ensureAdminMediaFolder(db);
+    const fileToken=await fileShareTokenValue(d.fileSharePassword);
+    const folderAccessToken=folderToken(f._id.toString());
+    s.json({ok:true,folder:{id:f._id.toString(),name:'Media',password:'media',movedFiles:f.movedFiles},fileToken,folderToken:folderAccessToken});
+  } catch(e) { s.status(500).json({error:e.message}); }
+});
+app.get('/api/admin/passwords',adminAuth,async(q,s)=>{try{const d=await getSettings();const db=await mongo();const folders=await db.collection('folders').find({}).sort({name:1}).toArray();const links=await getLinks();s.json({pagePassword:String(d.pagePassword),fileSharePassword:String(d.fileSharePassword),adminPassword:String(d.adminPassword),links,folders:folders.map(f=>({id:f._id.toString(),name:f.name,password:String(f.password||''),protected:!!(f.password||f.passwordHash),adminOnly:!!f.adminOnly}))});}catch(e){s.status(500).json({error:e.message});}});
 app.put('/api/admin/passwords',adminAuth,async(q,s)=>{try{const db=await mongo(),d=await getSettings(),b=q.body||{};const pagePassword=String(b.pagePassword??d.pagePassword),fileSharePassword=String(b.fileSharePassword??d.fileSharePassword),adminPassword=String(b.adminPassword??d.adminPassword);if(!pagePassword||!fileSharePassword||!adminPassword)return s.status(400).json({error:'Passwords cannot be empty'});await db.collection('app_settings').updateOne({_id:'passwords'},{$set:{pagePassword,fileSharePassword,adminPassword,updatedAt:new Date()}},{upsert:true});if(Array.isArray(b.folders)){for(const f of b.folders){if(!f||!f.id)continue;const id=oid(f.id);if(!id)continue;const pass=String(f.password||'');if(pass)await db.collection('folders').updateOne({_id:id},{$set:{password:pass},$unset:{passwordHash:'',passwordSalt:''}});else await db.collection('folders').updateOne({_id:id},{$unset:{password:'',passwordHash:'',passwordSalt:''}});}}if(Array.isArray(b.links)){const clean=b.links.map((x,i)=>({id:String(x.id||('link-'+i)),name:String(x.name||'Link'),url:String(x.url||''),icon:String(x.icon||'🔗'),password:String(x.password||''),protected:Boolean(x.protected)}));if(clean.some(x=>!x.url||!/^https?:\/\//i.test(x.url)))return s.status(400).json({error:'Every link must have a valid http/https URL'});await db.collection('app_settings').updateOne({_id:'links'},{$set:{links:clean,updatedAt:new Date()}},{upsert:true});}s.json({ok:true});}catch(e){s.status(500).json({error:e.message});}});
 
 
@@ -93,7 +141,7 @@ app.get('/api/admin/links',adminAuth,async(q,s)=>{try{s.json(await getLinks());}
 app.put('/api/admin/links',adminAuth,async(q,s)=>{try{const incoming=Array.isArray(q.body?.links)?q.body.links:[];if(!incoming.length)return s.status(400).json({error:'At least one link is required'});const clean=incoming.map((x,i)=>({id:String(x.id||('link-'+i)),name:String(x.name||'Link'),url:String(x.url||''),icon:String(x.icon||'🔗'),password:String(x.password||''),protected:Boolean(x.protected)}));if(clean.some(x=>!x.url||!/^https?:\/\//i.test(x.url)))return s.status(400).json({error:'Every link must have a valid http/https URL'});const db=await mongo();await db.collection('app_settings').updateOne({_id:'links'},{$set:{links:clean,updatedAt:new Date()}},{upsert:true});s.json({ok:true,links:clean});}catch(e){s.status(500).json({error:e.message});}});
 
 /* Folders */
-app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
+app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null, adminOnly: { $ne: true } }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders', fileAuth, async (q, s) => { try { const name = String(q.body?.name || '').trim(), pass = String(q.body?.password || ''), raw = q.body?.parentId || null; if (!name) return s.status(400).json({ error: 'Folder name is required' }); if (name.length > 100) return s.status(400).json({ error: 'Folder name is too long' }); if (/[\\/]/.test(name)) return s.status(400).json({ error: 'Folder name cannot contain / or \\' }); const db = await mongo(), parentId = raw && oid(raw) ? oid(raw) : null; if (raw && !parentId) return s.status(400).json({ error: 'Invalid parent folder' }); if (parentId) { const par = await db.collection('folders').findOne({ _id: parentId }); if (!par) return s.status(404).json({ error: 'Parent folder not found' }); if ((par.password || par.passwordHash) && !folderUnlocked(q, parentId.toString())) return s.status(403).json({ error: 'Parent folder is locked' }); } if (await db.collection('folders').findOne({ name, parentId })) return s.status(409).json({ error: 'A folder with this name already exists here' }); const d = { name, parentId, createdAt: new Date() }; if (pass) { d.password = pass; } const r = await db.collection('folders').insertOne(d); s.json({ ok: true, folder: { id: r.insertedId.toString(), name, parentId: parentId?.toString() || null, protected: !!pass } }); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders/:id/unlock', fileAuth, async (q, s) => { try { const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await (await mongo()).collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); const supplied = String(q.body?.password || ''); if (!f.password && !f.passwordHash || folderPasswordMatches(f, supplied)) { if (!f.password && f.passwordHash) { await (await mongo()).collection('folders').updateOne({ _id: id }, { $set: { password: supplied }, $unset: { passwordHash: '', passwordSalt: '' } }); } return s.json({ ok: true, token: folderToken(id.toString()) }); } s.status(401).json({ error: 'Wrong folder password' }); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
@@ -149,7 +197,7 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     const name = String(q.body?.name || 'file');
     const mime = String(q.body?.mime || 'application/octet-stream');
     const size = Number(q.body?.size || 0);
-    const fid = q.body?.folderId || null;
+    let fid = q.body?.folderId || null;
 
     if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) ||
         index < 0 || total < 1 || index >= total || total > 100000000) {
@@ -157,7 +205,12 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     }
 
     const db = await mongo();
-    await validateUploadTarget(q, db, fid);
+    if (!fid && /^(image|video|audio)\//i.test(mime)) {
+      const mf = await ensureAdminMediaFolder(db);
+      fid = mf._id.toString();
+    } else {
+      await validateUploadTarget(q, db, fid);
+    }
 
     const chunks = db.collection('upload_chunks');
     await chunks.updateOne(
@@ -217,8 +270,14 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
         return s.status(409).json({ error: 'Upload chunks are incomplete or out of order' });
     }
 
-    const fid = docs[0].folderId || null;
-    await validateUploadTarget(q, db, fid);
+    let fid = docs[0].folderId || null;
+    if (!fid && /^(image|video|audio)\//i.test(String(docs[0].mime || ''))) {
+      const mf = await ensureAdminMediaFolder(db);
+      fid = mf._id.toString();
+    } else if (fid) {
+      const target = await db.collection('folders').findOne({ _id: oid(fid) });
+      if (!target?.adminOnly) await validateUploadTarget(q, db, fid);
+    }
 
     const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(docs[0].name, {
       contentType: docs[0].mime || 'application/octet-stream',
@@ -245,7 +304,7 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
   }
 });
 
-app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); const fid = q.body?.folderId || null, db = await mongo(); if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
+app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (!fid && /^(image|video|audio)\//i.test(String(q.file.mimetype || ''))) { const mf = await ensureAdminMediaFolder(db); fid = mf._id.toString(); } if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
 app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 app.delete('/api/files/:id', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'File not found' }); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } await new GridFSBucket(db, { bucketName: 'uploads' }).delete(id); s.json({ ok: true }); } catch (e) { s.status(400).json({ error: e.message }); } });

@@ -184,6 +184,8 @@ body {
 #folderPasswordPopupInput:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.15)}
 #folderPasswordPopupError{display:none;color:#fca5a5;font-size:13px;margin-top:10px}
 .folder-pass-actions{display:flex;gap:10px;margin-top:14px}.folder-pass-actions button{flex:1;border:0;border-radius:11px;padding:12px;cursor:pointer;font-weight:700}.folder-pass-cancel{background:#374151;color:#fff}.folder-pass-submit{background:#4f46e5;color:#fff}
+
+.admin-media-tools{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc}.admin-media-tools .admin-primary{width:auto;margin:0}@media(max-width:650px){.admin-media-tools{flex-direction:column;align-items:stretch}.admin-media-tools .admin-primary{width:100%}}
 </style>
 
 <style>
@@ -254,6 +256,13 @@ body {
       <div id="adminLinks" class="admin-links"></div>
       <h3>📁 Folder Passwords</h3>
       <div id="adminFolders" class="admin-folders"></div>
+      <div class="admin-media-tools">
+        <div>
+          <strong>🖼️ Admin Media Folder</strong>
+          <div class="admin-status">All existing image, video and audio files will be collected here. Password: <b>media</b></div>
+        </div>
+        <button type="button" class="admin-primary" onclick="openAdminMediaFolder()">📂 Open / Organize Media</button>
+      </div>
       <div id="adminSaveStatus" class="admin-status"></div>
       <button class="admin-primary" onclick="saveAdminPasswords()">💾 Save All Passwords</button>
     </div>
@@ -352,6 +361,30 @@ async function openAdmin(){const m=document.getElementById('adminModal');m.style
 function closeAdmin(){const m=document.getElementById('adminModal');m.style.display='none';m.setAttribute('aria-hidden','true');}
 async function adminLogin(){const p=document.getElementById('adminLoginPassword').value,e=document.getElementById('adminLoginError');try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Wrong admin password');sessionStorage.setItem('adminToken',d.token);document.getElementById('adminLoginArea').style.display='none';document.getElementById('adminPanel').style.display='block';await loadAdminPasswords();}catch(x){e.textContent='❌ '+x.message;}}
 async function loadAdminPasswords(){const r=await fetch('/api/admin/passwords',{headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load passwords');document.getElementById('adminPagePassword').value=d.pagePassword;document.getElementById('adminFilePassword').value=d.fileSharePassword;document.getElementById('adminAdminPassword').value=d.adminPassword;renderAdminLinks(d.links||[]);document.getElementById('adminFolders').innerHTML=d.folders.length?d.folders.map(f=>`<div class="admin-folder-row"><div class="admin-folder-name">📁 ${escapeHtml(f.name)}${f.protected?' 🔐':''}</div><label>Password<input class="admin-folder-pass" data-id="${escapeHtml(f.id)}" type="text" value="${escapeHtml(f.password)}" placeholder="No password"></label></div>`).join(''):'<div class="admin-status">No folders created yet.</div>';}
+async function openAdminMediaFolder(){
+  const status=document.getElementById('adminSaveStatus');
+  try{
+    status.textContent='⏳ Organizing media files…';
+    const r=await fetch('/api/admin/media-folder',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(d.error||'Could not open Media folder');
+    sessionStorage.setItem('fileShareToken',d.fileToken);
+    window.driveStack=[];
+    window.currentFolder=d.folder.id;
+    window.currentFolderName='Media';
+    window.currentFolderToken=d.folderToken;
+    const m=document.getElementById('fileModal');
+    m.style.display='flex';
+    m.setAttribute('aria-hidden','false');
+    await loadDrive();
+    status.textContent='✅ Media folder ready. '+d.folder.movedFiles+' media file(s) are stored there.';
+  }catch(e){
+    status.textContent='❌ '+(e.message||'Could not open Media folder');
+  }
+}
 function renderAdminLinks(links){const box=document.getElementById('adminLinks');if(!box)return;box.innerHTML=links.map((l,i)=>`<div class="admin-link-row" data-id="${escapeHtml(l.id)}"><input class="admin-link-icon-input" type="text" value="${escapeHtml(l.icon||'🔗')}" placeholder="🔗" maxlength="4"><input class="admin-link-name" type="text" value="${escapeHtml(l.name)}" placeholder="Link name"><input class="admin-link-url" type="text" value="${escapeHtml(l.url)}" placeholder="https://..."><input class="admin-link-password" type="text" value="${escapeHtml(l.password||'')}" placeholder="Password (optional)"><label class="admin-link-protect"><input class="admin-link-protected" type="checkbox" ${l.protected?'checked':''}> Password protection</label><button type="button" class="admin-link-delete" onclick="deleteAdminLink(this)">🗑️</button></div>`).join('');}
 function collectAdminLinks(){return [...document.querySelectorAll('#adminLinks .admin-link-row')].map(row=>({id:row.dataset.id,name:row.querySelector('.admin-link-name').value.trim(),url:row.querySelector('.admin-link-url').value.trim(),icon:row.querySelector('.admin-link-icon-input').value.trim()||'🔗',password:row.querySelector('.admin-link-password').value,protected:row.querySelector('.admin-link-protected').checked}));}
 function addAdminLink(){const box=document.getElementById('adminLinks');const id='link-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);const row=document.createElement('div');row.className='admin-link-row';row.dataset.id=id;row.innerHTML=`<input class="admin-link-icon-input" type="text" value="🔗" placeholder="🔗" maxlength="4"><input class="admin-link-name" type="text" placeholder="Link name"><input class="admin-link-url" type="text" placeholder="https://..."><input class="admin-link-password" type="text" placeholder="Password (optional)"><label class="admin-link-protect"><input class="admin-link-protected" type="checkbox"> Password protection</label><button type="button" class="admin-link-delete" onclick="deleteAdminLink(this)">🗑️</button>`;box.appendChild(row);row.querySelector('.admin-link-name').focus();}
