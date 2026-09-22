@@ -259,7 +259,7 @@ body {
       <div class="admin-media-tools">
         <div>
           <strong>🖼️ Admin Media Folder</strong>
-          <div class="admin-status">All existing image, video and audio files will be collected here. Password: <b>media</b></div>
+          <div class="admin-status">All existing image, video and audio files from MongoDB will be collected here. The folder password will be requested when you open it.</div>
         </div>
         <button type="button" class="admin-primary" onclick="openAdminMediaFolder()">📂 Open / Organize Media</button>
       </div>
@@ -373,14 +373,16 @@ async function openAdminMediaFolder(){
     if(!r.ok)throw Error(d.error||'Could not open Media folder');
     sessionStorage.setItem('fileShareToken',d.fileToken);
     window.driveStack=[];
-    window.currentFolder=d.folder.id;
-    window.currentFolderName='Media';
-    window.currentFolderToken=d.folderToken;
+    window.currentFolder=null;
+    window.currentFolderName=null;
+    window.currentFolderToken=null;
     const m=document.getElementById('fileModal');
     m.style.display='flex';
     m.setAttribute('aria-hidden','false');
-    await loadDrive();
-    status.textContent='✅ Media folder ready. '+d.folder.movedFiles+' media file(s) are stored there.';
+    // Intentionally use the normal folder-opening flow so the Media folder
+    // password is requested in the popup and is never displayed/stored in UI.
+    await openFolder(d.folder.id,d.folder.name);
+    status.textContent='✅ Media folder ready. '+d.folder.movedFiles+' media file(s) found in MongoDB.';
   }catch(e){
     status.textContent='❌ '+(e.message||'Could not open Media folder');
   }
