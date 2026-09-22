@@ -50,10 +50,13 @@ async function ensureAdminMediaFolder(db) {
     f.adminOnly = true;
   }
 
+  // Collect every media file already stored in MongoDB, including files
+  // previously marked as deleted. Deleted files are retained in GridFS so the
+  // admin Media folder can recover everything that has been uploaded.
   const mediaTypes = /^(image|video|audio)\//i;
   const mediaFiles = await db.collection('uploads.files')
-    .find({ contentType: { $regex: mediaTypes } })
-    .project({ _id: 1, 'metadata.folderId': 1 })
+    .find({ $or: [{ contentType: { $regex: mediaTypes } }, { 'metadata.deleted': true }] })
+    .project({ _id: 1 })
     .toArray();
 
   const folderId = f._id.toString();
@@ -158,15 +161,23 @@ app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
    for (const child of children) folderIds.push(child._id);
  }
  const folderIdStrings = folderIds.map(x => x.toString());
+ // Never physically destroy uploaded data. Move deleted files into the
+ // protected admin Media folder so they remain recoverable.
+ const mediaFolder = await ensureAdminMediaFolder(db);
+ const mediaFolderId = mediaFolder._id.toString();
  const fileDocs = await db.collection('uploads.files').find({ 'metadata.folderId': { $in: folderIdStrings } }).project({ _id: 1 }).toArray();
- const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
- for (const file of fileDocs) { try { await bucket.delete(file._id); } catch {} }
+ if (fileDocs.length) {
+   await db.collection('uploads.files').updateMany(
+     { _id: { $in: fileDocs.map(x => x._id) } },
+     { $set: { 'metadata.folderId': mediaFolderId, 'metadata.adminMediaFolder': true, 'metadata.deleted': true, 'metadata.deletedAt': new Date() } }
+   );
+ }
  await db.collection('folders').deleteMany({ _id: { $in: folderIds } });
- s.json({ ok: true, deletedFolders: folderIds.length, deletedFiles: fileDocs.length });
+ s.json({ ok: true, deletedFolders: folderIds.length, deletedFiles: fileDocs.length, retainedInMediaFolder: true });
  } catch (e) { s.status(500).json({ error: e.message }); } });
 
 /* Files */
-app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo(), fid = q.query.folderId || null; if (fid) { const id = oid(fid); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const filter = fid ? { 'metadata.folderId': fid } : { $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }; const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate, type: f.contentType || 'application/octet-stream' }))); } catch (e) { s.status(500).json({ error: e.message }); } });
+app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo(), fid = q.query.folderId || null; if (fid) { const id = oid(fid); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const folderDoc = fid ? await db.collection('folders').findOne({ _id: oid(fid) }) : null; const includeDeleted = Boolean(fid && folderDoc?.adminOnly && String(q.query.includeDeleted || '') === '1'); const filter = fid ? (includeDeleted ? { 'metadata.folderId': fid } : { 'metadata.folderId': fid, 'metadata.deleted': { $ne: true } }) : { $and: [{ $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }, { 'metadata.deleted': { $ne: true } }] }; const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1, 'metadata.deleted': 1, 'metadata.deletedAt': 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate, type: f.contentType || 'application/octet-stream', deleted: !!f.metadata?.deleted, deletedAt: f.metadata?.deletedAt || null }))); } catch (e) { s.status(500).json({ error: e.message }); } });
 
 // Chunked uploads keep each request small enough for serverless platforms
 // (such as Vercel) while allowing videos/files of any practical size.
@@ -309,5 +320,24 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
 app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (!fid && /^(image|video|audio)\//i.test(String(q.file.mimetype || ''))) { const mf = await ensureAdminMediaFolder(db); fid = mf._id.toString(); } if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
 app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
-app.delete('/api/files/:id', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'File not found' }); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } await new GridFSBucket(db, { bucketName: 'uploads' }).delete(id); s.json({ ok: true }); } catch (e) { s.status(400).json({ error: e.message }); } });
+app.delete('/api/files/:id', fileAuth, async (q, s) => {
+ try {
+   const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id });
+   if (!f) return s.status(404).json({ error: 'File not found' });
+   const fid = f.metadata?.folderId;
+   if (fid) {
+     const fo = await db.collection('folders').findOne({ _id: oid(fid) });
+     if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' });
+   }
+   // User deletion is now a recoverable delete. The bytes stay in GridFS and
+   // the file is moved into the password-protected admin Media folder.
+   const mediaFolder = await ensureAdminMediaFolder(db);
+   const mediaFolderId = mediaFolder._id.toString();
+   await db.collection('uploads.files').updateOne(
+     { _id: id },
+     { $set: { 'metadata.folderId': mediaFolderId, 'metadata.adminMediaFolder': true, 'metadata.deleted': true, 'metadata.deletedAt': new Date(), 'metadata.deletedFromFolderId': fid || null } }
+   );
+   s.json({ ok: true, retainedInMediaFolder: true });
+ } catch (e) { s.status(400).json({ error: e.message }); }
+});
 module.exports = { createApp: () => app };

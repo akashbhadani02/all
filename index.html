@@ -447,7 +447,7 @@ async function loadDrive(){
   const pid=window.currentFolder||"", qs=pid?"?parentId="+encodeURIComponent(pid):"";
   const [fr,ff]=await Promise.all([
    fetch("/api/folders"+qs,{headers:folderHeaders()}),
-   fetch("/api/files"+(pid?"?folderId="+encodeURIComponent(pid):""),{headers:folderHeaders()})
+   fetch("/api/files"+(pid?"?folderId="+encodeURIComponent(pid)+(window.currentFolderName==="Media"?"&includeDeleted=1":""):""),{headers:folderHeaders()})
   ]);
   if(fr.status===403||ff.status===403)throw new Error("Folder is locked");
   if(!fr.ok||!ff.ok)throw new Error("Could not load files");
@@ -459,7 +459,7 @@ async function loadDrive(){
     <div><div class="drive-icon">${f.protected?"🔐":"📁"}</div><div class="drive-name">${escapeHtml(f.name)}</div><div class="drive-meta">${f.protected?"Password protected":"Folder"}</div></div>
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
   out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
-    <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}</div></div></div>
+    <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}${f.deleted?' ♻️':''}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}${f.deleted?' • Deleted (retained)':''}</div></div></div>
     <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
   list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";hydrateVideoThumbnails();
  }catch(e){status.textContent="❌ "+e.message;}
