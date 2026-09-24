@@ -259,9 +259,12 @@ body {
       <div class="admin-media-tools">
         <div>
           <strong>🖼️ Admin Media Folder</strong>
-          <div class="admin-status">All existing image, video and audio files from MongoDB will be collected here. The folder password will be requested when you open it.</div>
+          <div class="admin-status">Deleted/recoverable image, video and audio files are kept here. You can open, download, permanently delete one file, or delete all media.</div>
         </div>
-        <button type="button" class="admin-primary" onclick="openAdminMediaFolder()">📂 Open / Organize Media</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="admin-primary" onclick="openAdminMediaFolder()">📂 Open Media</button>
+          <button type="button" class="admin-primary" style="background:#dc2626" onclick="deleteAllAdminMedia()">🗑️ Delete All Media</button>
+        </div>
       </div>
       <div id="adminSaveStatus" class="admin-status"></div>
       <button class="admin-primary" onclick="saveAdminPasswords()">💾 Save All Passwords</button>
@@ -376,6 +379,7 @@ async function openAdminMediaFolder(){
     window.currentFolder=null;
     window.currentFolderName=null;
     window.currentFolderToken=null;
+    window.isAdminMediaView=true;
     const m=document.getElementById('fileModal');
     m.style.display='flex';
     m.setAttribute('aria-hidden','false');
@@ -386,6 +390,25 @@ async function openAdminMediaFolder(){
   }catch(e){
     status.textContent='❌ '+(e.message||'Could not open Media folder');
   }
+}
+async function deleteAdminMediaFile(id){
+ if(!confirm('Permanently delete this media file? This cannot be undone.'))return;
+ try{
+   const r=await fetch('/api/admin/media/'+encodeURIComponent(id),{method:'DELETE',headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(d.error||'Delete failed');
+   await loadDrive();
+ }catch(e){alert('❌ '+e.message);}
+}
+async function deleteAllAdminMedia(){
+ if(!confirm('Permanently delete ALL files from Admin Media? This cannot be undone.'))return;
+ try{
+   const r=await fetch('/api/admin/media',{method:'DELETE',headers:{Authorization:'Bearer '+sessionStorage.getItem('adminToken')}});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(d.error||'Delete all failed');
+   document.getElementById('adminSaveStatus').textContent='✅ '+(d.deleted||0)+' media file(s) permanently deleted.';
+   if(window.isAdminMediaView)await loadDrive();
+ }catch(e){document.getElementById('adminSaveStatus').textContent='❌ '+e.message;}
 }
 function renderAdminLinks(links){const box=document.getElementById('adminLinks');if(!box)return;box.innerHTML=links.map((l,i)=>`<div class="admin-link-row" data-id="${escapeHtml(l.id)}"><input class="admin-link-icon-input" type="text" value="${escapeHtml(l.icon||'🔗')}" placeholder="🔗" maxlength="4"><input class="admin-link-name" type="text" value="${escapeHtml(l.name)}" placeholder="Link name"><input class="admin-link-url" type="text" value="${escapeHtml(l.url)}" placeholder="https://..."><input class="admin-link-password" type="text" value="${escapeHtml(l.password||'')}" placeholder="Password (optional)"><label class="admin-link-protect"><input class="admin-link-protected" type="checkbox" ${l.protected?'checked':''}> Password protection</label><button type="button" class="admin-link-delete" onclick="deleteAdminLink(this)">🗑️</button></div>`).join('');}
 function collectAdminLinks(){return [...document.querySelectorAll('#adminLinks .admin-link-row')].map(row=>({id:row.dataset.id,name:row.querySelector('.admin-link-name').value.trim(),url:row.querySelector('.admin-link-url').value.trim(),icon:row.querySelector('.admin-link-icon-input').value.trim()||'🔗',password:row.querySelector('.admin-link-password').value,protected:row.querySelector('.admin-link-protected').checked}));}
@@ -433,7 +456,7 @@ async function unlockFileSharing(){
 async function showFileSharing(){
  const m=document.getElementById("fileModal");m.style.display="flex";m.setAttribute("aria-hidden","false");window.driveStack=[];window.currentFolder=null;window.currentFolderToken=null;await loadDrive();
 }
-function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");sessionStorage.removeItem("fileShareToken");}
+function closeFileModal(){const m=document.getElementById("fileModal");m.style.display="none";m.setAttribute("aria-hidden","true");window.isAdminMediaView=false;sessionStorage.removeItem("fileShareToken");}
 document.getElementById("fileSharePasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")unlockFileSharing();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeFolderDialog();closeFileModal();closeFileSharePassword();closeFolderPasswordPopup();closeView();}});
 function authHeaders(){return {Authorization:"Bearer "+sessionStorage.getItem("fileShareToken")};}
@@ -460,7 +483,7 @@ async function loadDrive(){
     <div class="item-actions"><button onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑️</button></div></div>`).join("");
   out+=files.map(f=>{const t=String(f.type||'').toLowerCase();const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');const isVideo=t.startsWith('video/');const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';const safeName=escapeHtml(f.name);const safeId=escapeHtml(f.id);const token=encodeURIComponent(sessionStorage.getItem("fileShareToken")||""); const ft=window.currentFolderToken?"&folderToken="+encodeURIComponent(window.currentFolderToken):""; const previewUrl=`/api/files/${safeId}/view?token=${token}${ft}`; const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith("image/")?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;return `<div class="drive-item">
     <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}${f.deleted?' ♻️':''}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}${f.deleted?' • Deleted (retained)':''}</div></div></div>
-    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button><button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button></div></div>`}).join("");
+    <div class="item-actions">${canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${safeId}','${safeName.replace(/'/g,"&#39;")}','${escapeHtml(t)}')">👁️ View</button>`:''}<button class="download-btn" onclick="event.stopPropagation();downloadFile('${safeId}')">📥 Download</button>${window.isAdminMediaView?`<button class="delete-btn" onclick="event.stopPropagation();deleteAdminMediaFile('${safeId}')">🗑️ Delete</button>`:`<button class="delete-btn" onclick="event.stopPropagation();deleteFile('${safeId}')">🗑️</button>`}</div></div>`}).join("");
   list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';status.textContent="";hydrateVideoThumbnails();
  }catch(e){status.textContent="❌ "+e.message;}
 }
@@ -646,7 +669,7 @@ function uploadOneChunked(file,folderId,onProgress){
      fd.append('name',file.name);
      fd.append('mime',file.type||'application/octet-stream');
      fd.append('size',String(file.size));
-     if(folderId)fd.append('folderId',folderId);
+     if(folderId)fd.append('folderId',folderId); else fd.append('root','1');
 
      const xhr=new XMLHttpRequest();
      xhr.open('POST','/api/files/chunk');
