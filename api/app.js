@@ -108,7 +108,7 @@ function verifyPass(p, s, h) { try { const x = crypto.scryptSync(p, s, 64); retu
 function setFolderPassword(d, pass) { if (pass) { d.password = pass; d.passwordHash = undefined; d.passwordSalt = undefined; } return d; }
 function folderPasswordMatches(f, p) { return String(f.password || '') === String(p || '') || (!f.password && f.passwordHash && verifyPass(String(p || ''), f.passwordSalt, f.passwordHash)); }
 function oid(id) { return ObjectId.isValid(id) ? new ObjectId(id) : null; }
-app.use(express.json({ limit: '1mb' })); app.get('/', (q, s) => s.sendFile(path.join(__dirname, '..', 'index.html'))); app.use(express.static(path.join(__dirname, '..')));
+app.use(express.json({ limit: '8mb' })); app.get('/', (q, s) => s.sendFile(path.join(__dirname, '..', 'index.html'))); app.use(express.static(path.join(__dirname, '..')));
 app.post('/api/login', async (q,s)=>{try{const p=String(q.body?.password||''),d=await getSettings();if(p!==String(d.pagePassword))return s.status(401).json({error:'Wrong password'});s.json({token:tokenFor(p)});}catch(e){s.status(500).json({error:e.message});}});
 app.post('/api/file-share-login', async (q,s)=>{try{const p=String(q.body?.password||''),d=await getSettings();if(p!==String(d.fileSharePassword))return s.status(401).json({error:'Wrong File Sharing password'});s.json({token:await fileShareTokenValue(p)});}catch(e){s.status(500).json({error:e.message});}});
 app.post('/api/admin-login', async(q,s)=>{try{const p=String(q.body?.password||''),d=await getSettings();if(p!==String(d.adminPassword))return s.status(401).json({error:'Wrong admin password'});s.json({token:adminToken(p)});}catch(e){s.status(500).json({error:e.message});}});
@@ -145,10 +145,104 @@ app.post('/api/link-login',async(q,s)=>{try{const id=String(q.body?.id||''),p=St
 app.get('/api/admin/links',adminAuth,async(q,s)=>{try{s.json(await getLinks());}catch(e){s.status(500).json({error:e.message});}});
 app.put('/api/admin/links',adminAuth,async(q,s)=>{try{const incoming=Array.isArray(q.body?.links)?q.body.links:[];if(!incoming.length)return s.status(400).json({error:'At least one link is required'});const clean=incoming.map((x,i)=>({id:String(x.id||('link-'+i)),name:String(x.name||'Link'),url:String(x.url||''),icon:String(x.icon||'🔗'),password:String(x.password||''),protected:Boolean(x.protected)}));if(clean.some(x=>!x.url||!/^https?:\/\//i.test(x.url)))return s.status(400).json({error:'Every link must have a valid http/https URL'});const db=await mongo();await db.collection('app_settings').updateOne({_id:'links'},{$set:{links:clean,updatedAt:new Date()}},{upsert:true});s.json({ok:true,links:clean});}catch(e){s.status(500).json({error:e.message});}});
 
+
+/* ===== Editable File Share helpers ===== */
+function isEditableTextFile(filename, contentType) {
+  const n = String(filename || '').toLowerCase();
+  const t = String(contentType || '').toLowerCase();
+  if (t.startsWith('text/')) return true;
+  return /\.(txt|md|markdown|json|js|mjs|cjs|ts|tsx|jsx|css|scss|less|html|htm|xml|svg|csv|tsv|yaml|yml|ini|conf|config|env|log|sql|sh|bat|cmd|ps1|py|java|c|cpp|h|hpp|php|rb|go|rs|swift|kt|dart|vue|svelte)$/i.test(n);
+}
+async function assertFolderAccess(req, db, folderId, {allowAdminOnly=false}={}) {
+  if (!folderId) return null;
+  const id = oid(folderId);
+  if (!id) throw Object.assign(new Error('Invalid folder id'), {statusCode:400});
+  const f = await db.collection('folders').findOne({_id:id});
+  if (!f) throw Object.assign(new Error('Folder not found'), {statusCode:404});
+  if (f.adminOnly && !allowAdminOnly) throw Object.assign(new Error('This folder is admin-only'), {statusCode:403});
+  if ((f.password || f.passwordHash) && !folderUnlocked(req, folderId))
+    throw Object.assign(new Error('Folder is locked'), {statusCode:403});
+  return f;
+}
+async function assertCanEditFile(req, db, f) {
+  if (!f) throw Object.assign(new Error('File not found'), {statusCode:404});
+  const fid = f.metadata?.folderId || null;
+  if (fid) await assertFolderAccess(req, db, fid, {allowAdminOnly: !!f.metadata?.adminMediaFolder});
+}
+
 /* Folders */
 app.get('/api/folders', fileAuth, async (q, s) => { try { const db = await mongo(), pid = q.query.parentId || null, filter = pid && oid(pid) ? { parentId: oid(pid) } : { parentId: null, adminOnly: { $ne: true } }; if (pid && oid(pid)) { const par = await db.collection('folders').findOne({ _id: oid(pid) }); if ((par?.password || par?.passwordHash) && !folderUnlocked(q, pid)) return s.status(403).json({ error: 'Folder is locked' }); } const a = await db.collection('folders').find(filter).sort({ name: 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.name, parentId: f.parentId ? f.parentId.toString() : null, protected: !!(f.password || f.passwordHash), date: f.createdAt }))); } catch (e) { s.status(500).json({ error: e.message }); } });
+app.get('/api/folders/all', fileAuth, async (q, s) => {
+  try {
+    const db = await mongo();
+    const rows = await db.collection('folders')
+      .find({ adminOnly: { $ne: true } })
+      .sort({ name: 1 }).toArray();
+    const byId = new Map(rows.map(f => [f._id.toString(), f]));
+    const result = rows.map(f => {
+      const parts = [];
+      let cur = f, guard = 0;
+      while (cur && guard++ < 100) {
+        parts.unshift(cur.name);
+        cur = cur.parentId ? byId.get(cur.parentId.toString()) : null;
+      }
+      return {
+        id: f._id.toString(),
+        name: f.name,
+        parentId: f.parentId ? f.parentId.toString() : null,
+        protected: !!(f.password || f.passwordHash),
+        path: '/' + parts.join('/')
+      };
+    });
+    s.json(result);
+  } catch (e) { s.status(500).json({error:e.message}); }
+});
+
 app.post('/api/folders', fileAuth, async (q, s) => { try { const name = String(q.body?.name || '').trim(), pass = String(q.body?.password || ''), raw = q.body?.parentId || null; if (!name) return s.status(400).json({ error: 'Folder name is required' }); if (name.length > 100) return s.status(400).json({ error: 'Folder name is too long' }); if (/[\\/]/.test(name)) return s.status(400).json({ error: 'Folder name cannot contain / or \\' }); const db = await mongo(), parentId = raw && oid(raw) ? oid(raw) : null; if (raw && !parentId) return s.status(400).json({ error: 'Invalid parent folder' }); if (parentId) { const par = await db.collection('folders').findOne({ _id: parentId }); if (!par) return s.status(404).json({ error: 'Parent folder not found' }); if ((par.password || par.passwordHash) && !folderUnlocked(q, parentId.toString())) return s.status(403).json({ error: 'Parent folder is locked' }); } if (await db.collection('folders').findOne({ name, parentId })) return s.status(409).json({ error: 'A folder with this name already exists here' }); const d = { name, parentId, createdAt: new Date() }; if (pass) { d.password = pass; } const r = await db.collection('folders').insertOne(d); s.json({ ok: true, folder: { id: r.insertedId.toString(), name, parentId: parentId?.toString() || null, protected: !!pass } }); } catch (e) { s.status(500).json({ error: e.message }); } });
 app.post('/api/folders/:id/unlock', fileAuth, async (q, s) => { try { const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await (await mongo()).collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); const supplied = String(q.body?.password || ''); if (!f.password && !f.passwordHash || folderPasswordMatches(f, supplied)) { if (!f.password && f.passwordHash) { await (await mongo()).collection('folders').updateOne({ _id: id }, { $set: { password: supplied }, $unset: { passwordHash: '', passwordSalt: '' } }); } return s.json({ ok: true, token: folderToken(id.toString()) }); } s.status(401).json({ error: 'Wrong folder password' }); } catch (e) { s.status(500).json({ error: e.message }); } });
+
+app.put('/api/folders/:id', fileAuth, async (q, s) => {
+  try {
+    const db = await mongo(), id = oid(q.params.id);
+    if (!id) return s.status(400).json({error:'Invalid folder id'});
+    const f = await db.collection('folders').findOne({_id:id});
+    if (!f) return s.status(404).json({error:'Folder not found'});
+    if (f.adminOnly) return s.status(403).json({error:'Admin-only folder cannot be changed here'});
+    if ((f.password || f.passwordHash) && !folderUnlocked(q, q.params.id))
+      return s.status(403).json({error:'Folder is locked'});
+
+    const b=q.body||{}, name=String(b.name ?? f.name).trim();
+    if (!name || name.length>100) return s.status(400).json({error:'Folder name is required and must be 100 characters or less'});
+    if (/[\\/]/.test(name)) return s.status(400).json({error:'Folder name cannot contain / or \\'});
+
+    let parentId = Object.prototype.hasOwnProperty.call(b,'parentId') ? (b.parentId ? oid(b.parentId) : null) : (f.parentId || null);
+    if (Object.prototype.hasOwnProperty.call(b,'parentId') && b.parentId && !parentId)
+      return s.status(400).json({error:'Invalid target folder'});
+    if (parentId && parentId.equals(id)) return s.status(400).json({error:'A folder cannot be moved inside itself'});
+    if (parentId) {
+      const target=await db.collection('folders').findOne({_id:parentId});
+      if (!target || target.adminOnly) return s.status(404).json({error:'Target folder not found'});
+      if ((target.password || target.passwordHash) &&
+          q.headers['x-folder-token-target'] !== folderToken(parentId.toString()) &&
+          !folderUnlocked(q, parentId.toString()))
+        return s.status(403).json({error:'Target folder is locked'});
+      // Prevent moving a folder into one of its own descendants.
+      const descendants=new Set([id.toString()]);
+      let frontier=[id];
+      while(frontier.length){
+        const children=await db.collection('folders').find({parentId:{$in:frontier}}).project({_id:1}).toArray();
+        frontier=children.map(x=>x._id);
+        for(const c of frontier) descendants.add(c.toString());
+      }
+      if(descendants.has(parentId.toString())) return s.status(400).json({error:'A folder cannot be moved inside its own child folder'});
+    }
+    const duplicate=await db.collection('folders').findOne({_id:{$ne:id},name,parentId});
+    if(duplicate) return s.status(409).json({error:'A folder with this name already exists at the target path'});
+    await db.collection('folders').updateOne({_id:id},{$set:{name,parentId,updatedAt:new Date()}});
+    s.json({ok:true,id:id.toString(),name,parentId:parentId?parentId.toString():null});
+  } catch(e){ s.status(e.statusCode||500).json({error:e.message}); }
+});
+
 app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
  const id = oid(q.params.id); if (!id) return s.status(400).json({ error: 'Invalid folder id' });
  const db = await mongo(), root = await db.collection('folders').findOne({ _id: id });
@@ -320,6 +414,84 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
 app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (!fid && /^(image|video|audio)\//i.test(String(q.file.mimetype || ''))) { const mf = await ensureAdminMediaFolder(db); fid = mf._id.toString(); } if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
 app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
+
+app.get('/api/files/:id/content', fileAuth, async (q, s) => {
+  try {
+    const db=await mongo(), id=oid(q.params.id);
+    if(!id) return s.status(400).json({error:'Invalid file id'});
+    const f=await db.collection('uploads.files').findOne({_id:id});
+    await assertCanEditFile(q,db,f);
+    if(!isEditableTextFile(f.filename,f.contentType)) return s.status(415).json({error:'This file is not a text-editable file'});
+    const chunks=[];
+    await new Promise((resolve,reject)=>{
+      new GridFSBucket(db,{bucketName:'uploads'}).openDownloadStream(id)
+        .on('data',c=>chunks.push(c)).on('end',resolve).on('error',reject);
+    });
+    const content=Buffer.concat(chunks).toString('utf8');
+    s.json({id:id.toString(),name:f.filename,type:f.contentType||'text/plain',content});
+  } catch(e){s.status(e.statusCode||500).json({error:e.message});}
+});
+
+app.put('/api/files/:id/content', fileAuth, async (q, s) => {
+  try {
+    const db=await mongo(), id=oid(q.params.id);
+    if(!id) return s.status(400).json({error:'Invalid file id'});
+    const f=await db.collection('uploads.files').findOne({_id:id});
+    await assertCanEditFile(q,db,f);
+    if(!isEditableTextFile(f.filename,f.contentType)) return s.status(415).json({error:'This file is not a text-editable file'});
+    const content=String(q.body?.content ?? '');
+    const data=Buffer.from(content,'utf8');
+    if(data.length>8*1024*1024) return s.status(413).json({error:'Text file is too large to edit in browser (8 MB maximum)'});
+    const meta={...(f.metadata||{}), editedAt:new Date(), editedBy:'file-share'};
+    await new GridFSBucket(db,{bucketName:'uploads'}).delete(id);
+    const st=new GridFSBucket(db,{bucketName:'uploads'}).openUploadStream(f.filename,{contentType:f.contentType||'text/plain',metadata:meta});
+    await new Promise((resolve,reject)=>{st.on('finish',resolve);st.on('error',reject);st.end(data);});
+    s.json({ok:true,name:f.filename,size:data.length});
+  } catch(e){s.status(e.statusCode||500).json({error:e.message});}
+});
+
+app.put('/api/files/:id', fileAuth, async (q, s) => {
+  try {
+    const db=await mongo(), id=oid(q.params.id);
+    if(!id) return s.status(400).json({error:'Invalid file id'});
+    const f=await db.collection('uploads.files').findOne({_id:id});
+    await assertCanEditFile(q,db,f);
+    const b=q.body||{};
+    if(Object.prototype.hasOwnProperty.call(b,'name')){
+      const name=String(b.name||'').trim();
+      if(!name || name.length>255) return s.status(400).json({error:'File name is required and must be 255 characters or less'});
+      if(/[\\/]/.test(name)) return s.status(400).json({error:'File name cannot contain / or \\'});
+      const targetFolderId=f.metadata?.folderId||null;
+      const duplicate=await db.collection('uploads.files').findOne({
+        _id:{$ne:id}, filename:name,
+        $or:[{'metadata.folderId':targetFolderId},{'metadata.folderId':{$exists:false}}]
+      });
+      if(duplicate) return s.status(409).json({error:'A file with this name already exists at this path'});
+      await db.collection('uploads.files').updateOne({_id:id},{$set:{filename:name,'metadata.updatedAt':new Date()}});
+    }
+    if(Object.prototype.hasOwnProperty.call(b,'folderId')){
+      const targetId=b.folderId ? String(b.folderId) : null;
+      if (targetId) {
+        const targetDoc=await db.collection('folders').findOne({_id:oid(targetId)});
+        if(!targetDoc || targetDoc.adminOnly) throw Object.assign(new Error('Target folder not found'),{statusCode:404});
+        if ((targetDoc.password || targetDoc.passwordHash) &&
+            q.headers['x-folder-token-target'] !== folderToken(targetId) &&
+            !folderUnlocked(q,targetId))
+          throw Object.assign(new Error('Target folder is locked'),{statusCode:403});
+      }
+      const targetFolderId=targetId;
+      const duplicate=await db.collection('uploads.files').findOne({
+        _id:{$ne:id}, filename:Object.prototype.hasOwnProperty.call(b,'name')?String(b.name||'').trim():f.filename,
+        $or:[{'metadata.folderId':targetFolderId},{'metadata.folderId':{$exists:false}}]
+      });
+      if(duplicate) return s.status(409).json({error:'A file with this name already exists at the target path'});
+      await db.collection('uploads.files').updateOne({_id:id},{$set:{'metadata.folderId':targetFolderId,'metadata.updatedAt':new Date()},$unset:{'metadata.deleted':'','metadata.deletedAt':'','metadata.deletedFromFolderId':''}});
+    }
+    const updated=await db.collection('uploads.files').findOne({_id:id});
+    s.json({ok:true,id:id.toString(),name:updated?.filename||f.filename,folderId:updated?.metadata?.folderId||null});
+  } catch(e){s.status(e.statusCode||500).json({error:e.message});}
+});
+
 app.delete('/api/files/:id', fileAuth, async (q, s) => {
  try {
    const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id });
