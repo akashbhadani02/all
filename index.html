@@ -2067,7 +2067,7 @@ html,body{max-width:100%;overflow-x:hidden}
             </div></div>`;
         }).join('');
         list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';
-        status.textContent=`${folders.length} folder(s) • ${files.length} file(s)${window.showAllFiles?' • including subfolders':''}`;hydrateVideoThumbnails();
+        status.textContent=`${folders.length} folder(s) • ${files.length} file(s)${window.showAllFiles?' • including subfolders':''} • Files stay in their upload folder`;hydrateVideoThumbnails();
       }catch(e){status.textContent='❌ '+e.message;}
     }
     function selectDriveItem(el) { document.querySelectorAll(".drive-item").forEach(x => x.style.outline = ""); el.style.outline = "2px solid #818cf8"; }
@@ -2327,8 +2327,12 @@ html,body{max-width:100%;overflow-x:hidden}
             const rel = String(file.webkitRelativePath || '').replace(/\\/g, '/');
             const parts = rel.split('/').filter(Boolean);
             parts.pop(); // filename
-            if (parts.length) {
-              const target = await ensureRelativeFolder(parts.join('/'));
+            // webkitRelativePath starts with the selected folder name. The selected
+            // folder is already the current destination, so only create its nested
+            // subfolders. This keeps every uploaded file exactly where it was selected.
+            const nestedParts = parts.length > 1 ? parts.slice(1) : [];
+            if (nestedParts.length) {
+              const target = await ensureRelativeFolder(nestedParts.join('/'));
               targetFolder = target.id;
               if (target.token) file.__folderToken = target.token;
             }
