@@ -103,6 +103,7 @@ function openFolderPasswordPopup(state){
  i.value="";e.style.display="none";m.style.display="flex";m.setAttribute("aria-hidden","false");setTimeout(()=>i.focus(),50);
 }
 function closeFolderPasswordPopup(){const m=document.getElementById("folderPasswordModal");m.style.display="none";m.setAttribute("aria-hidden","true");folderPasswordPopupState=null;}
+document.getElementById("folderPasswordPopupInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submitFolderPasswordPopup();}});
 async function submitFolderPasswordPopup(){
  const st=folderPasswordPopupState;if(!st)return;
  const i=document.getElementById("folderPasswordPopupInput"),e=document.getElementById("folderPasswordPopupError"),p=i.value;
