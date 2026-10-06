@@ -1,29 +1,34 @@
-# Editable File Share
+# File Share — Editable File Manager
 
-The File Sharing section now supports:
+This build adds a proper file-manager UI and editing controls.
 
-- Edit and save text/code files: TXT, MD, JSON, JS, TS, CSS, HTML, XML, SVG, CSV, YAML, SQL, Python, Java, C/C++, PHP, etc.
-- Rename files.
-- Change file path by moving a file to another folder or root.
-- Replace any binary/media file while keeping the original filename; the old file remains recoverable in the Media folder.
-- Rename folders.
-- Change folder path by moving folders, with descendant/cycle protection.
-- Protected folders continue to require their password when accessed or used as a target.
-- Large uploads continue using the existing chunked upload system.
+## File operations
+- Upload single/multiple files
+- Upload folders while preserving subfolders
+- Create folders
+- Open folders
+- Rename files and folders
+- Change file/folder path (move)
+- Replace any file while retaining the previous copy in Media/recovery
+- Preview images, video, audio and PDF/text files
+- Download and delete
+- Search files/folders
 
-### Path editing
+## Editing
+Text/code files can be opened with **Edit** or by double-clicking them. Supported examples include:
+TXT, MD, JSON, CSV, XML, HTML, CSS, JS, TS, JSX, TSX, YAML, YML, SQL, SH, BAT, CMD, PS1, PY, JAVA, C, CPP, H, HPP, PHP, RB, GO, RS, SWIFT, KT, DART, VUE and SVELTE.
 
-Use the `📍 Path` button on a file or folder. Select `Root` or another available folder.
+The editor supports:
+- UTF-8 text editing
+- Ctrl+S / Cmd+S save
+- Unsaved-change warning
+- Tab inserts two spaces
+- 8 MB browser editing limit
 
-### Text editing
+Binary files such as images, videos, PDFs and ZIPs are not directly text-editable. They can be previewed where supported or replaced with a new file.
 
-Use `✏️ Edit` on a supported text/code file. Edit the content and press `Save Changes`.
-
-### Binary/media editing
-
-Binary files cannot be edited as text safely. Use `♻️ Replace` to upload a replacement file. The previous version is retained in the protected Media folder.
-
-### Deployment
+## Important
+The Git repository itself is not included in the deployment ZIP. This avoids carrying `.git` merge-conflict files into deployment.
 
 Run:
 
@@ -31,5 +36,3 @@ Run:
 npm install
 npm start
 ```
-
-For Vercel, keep the existing `vercel.json` and configure the required environment variables (`MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, passwords, etc.) in the deployment settings.
