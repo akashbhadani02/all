@@ -50,12 +50,25 @@ async function ensureAdminMediaFolder(db) {
     f.adminOnly = true;
   }
 
-  // Collect every media file already stored in MongoDB, including files
-  // previously marked as deleted. Deleted files are retained in GridFS so the
-  // admin Media folder can recover everything that has been uploaded.
+  // Do NOT pull media out of an existing user folder. Changing a folder
+  // password must never move, hide, or detach its photos/videos.
+  // Media is collected here only when it is unassigned/root-level, already
+  // managed by this Media folder, or retained as a deleted/recoverable file.
   const mediaTypes = /^(image|video|audio)\//i;
   const mediaFiles = await db.collection('uploads.files')
-    .find({ $or: [{ contentType: { $regex: mediaTypes } }, { 'metadata.deleted': true }] })
+    .find({
+      $or: [
+        {
+          contentType: { $regex: mediaTypes },
+          $or: [
+            { 'metadata.folderId': null },
+            { 'metadata.folderId': { $exists: false } },
+            { 'metadata.adminMediaFolder': true }
+          ]
+        },
+        { 'metadata.deleted': true }
+      ]
+    })
     .project({ _id: 1 })
     .toArray();
 
