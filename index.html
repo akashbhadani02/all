@@ -1579,7 +1579,9 @@
         grid-column: 1/-1
       }
     }
-  </style>
+  
+    .all-files-btn.active{background:#eef2ff!important;color:#4338ca!important;border-color:#c7d2fe!important;font-weight:700}
+</style>
   <style>
 
 /* ===== FINAL MOBILE FILE MANAGER UI ===== */
@@ -1845,6 +1847,7 @@ html,body{max-width:100%;overflow-x:hidden}
         <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
         <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">🏠 Home</button>
         <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
+        <button class="drive-btn all-files-btn" id="allFilesBtn" type="button" onclick="toggleAllFiles()">📋 All Files</button>
         <label class="drive-btn upload-label">📤 Upload Files
           <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()"><input type="file" id="replaceFileInput" accept="*/*" hidden onchange="handleReplaceFile(this)">
         </label>
@@ -1995,7 +1998,13 @@ html,body{max-width:100%;overflow-x:hidden}
       } catch (e) { err.textContent = "❌ " + (e.message || "Wrong password"); err.style.display = "block"; inp.value = ""; inp.focus(); }
     }
     async function showFileSharing() {
-      const m = document.getElementById("fileModal"); m.style.display = "flex"; m.setAttribute("aria-hidden", "false"); window.driveStack = []; window.currentFolder = null; window.currentFolderToken = null; await loadDrive();
+      const m = document.getElementById("fileModal"); m.style.display = "flex"; m.setAttribute("aria-hidden", "false"); window.driveStack = []; window.currentFolder = null; window.currentFolderToken = null; window.showAllFiles = true; await loadDrive();
+    }
+    function toggleAllFiles(){
+      window.showAllFiles = !window.showAllFiles;
+      const b=document.getElementById('allFilesBtn');
+      if(b){ b.textContent=window.showAllFiles?'📋 All Files':'📂 Current Folder'; b.classList.toggle('active',window.showAllFiles); }
+      loadDrive();
     }
     function closeFileModal() { const m = document.getElementById("fileModal"); m.style.display = "none"; m.setAttribute("aria-hidden", "true"); sessionStorage.removeItem("fileShareToken"); }
     document.getElementById("fileSharePasswordInput").addEventListener("keydown", e => { if (e.key === "Enter") unlockFileSharing(); });
@@ -2017,9 +2026,10 @@ html,body{max-width:100%;overflow-x:hidden}
       const search=document.getElementById('driveSearch');if(search)search.value='';
       try{
         const pid=window.currentFolder||'',qs=pid?'?parentId='+encodeURIComponent(pid):'';
+        const recursiveParam=window.showAllFiles?'&recursive=1':'';
         const [fr,ff]=await Promise.all([
           fetch('/api/folders'+qs,{headers:folderHeaders()}),
-          fetch('/api/files'+(pid?'?folderId='+encodeURIComponent(pid)+(window.currentFolderName==='Media'?'&includeDeleted=1':''):''),{headers:folderHeaders()})
+          fetch('/api/files'+(pid?'?folderId='+encodeURIComponent(pid)+(window.currentFolderName==='Media'?'&includeDeleted=1':'')+recursiveParam:'?recursive=1'),{headers:folderHeaders()})
         ]);
         if(fr.status===403||ff.status===403)throw new Error('Folder is locked');
         if(!fr.ok||!ff.ok)throw new Error('Could not load files');
@@ -2039,14 +2049,14 @@ html,body{max-width:100%;overflow-x:hidden}
             </div></div>`;
         }).join('');
         out+=files.map(f=>{
-          const t=String(f.type||'').toLowerCase(),name=String(f.name||''),safeName=escapeHtml(name),id=escapeHtml(f.id),raw=name.replace(/'/g,'&#39;');
+          const t=String(f.type||'').toLowerCase(),name=String(f.name||''),safeName=escapeHtml(name),id=escapeHtml(f.id),raw=name.replace(/'/g,'&#39;'),filePath=String(f.path||'');
           const canView=t.startsWith('image/')||t.startsWith('video/')||t.startsWith('audio/')||t==='application/pdf'||t.startsWith('text/');
           const editable=isEditableText(name,t),isVideo=t.startsWith('video/');
           const icon=t.startsWith('image/')?'🖼️':isVideo?'🎬':t.startsWith('audio/')?'🎵':t==='application/pdf'?'📕':'📄';
           const token=encodeURIComponent(sessionStorage.getItem('fileShareToken')||''),ft=window.currentFolderToken?'&folderToken='+encodeURIComponent(window.currentFolderToken):'',previewUrl=`/api/files/${id}/view?token=${token}${ft}`;
           const thumb=isVideo?`<div class="video-thumb" aria-label="Video thumbnail"><video src="${previewUrl}" preload="metadata" muted playsinline></video><span class="thumb-play">▶</span></div>`:t.startsWith('image/')?`<div class="image-thumb" aria-label="Image thumbnail"><img src="${previewUrl}" loading="lazy" alt=""></div>`:`<div class="drive-icon">${icon}</div>`;
-          return `<div class="drive-item file-card" data-search="${escapeHtml(name+' '+t)}" ondblclick="${editable?`editTextFile('${id}','${raw}')`:canView?`viewFile('${id}','${raw}','${escapeHtml(t)}')`:'selectDriveItem(this)'}" onclick="selectDriveItem(this)">
-            <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}${f.deleted?' ♻️':''}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}${f.deleted?' • Deleted (retained)':''}</div></div></div>
+          return `<div class="drive-item file-card" data-search="${escapeHtml(name+' '+t+' '+filePath)}" ondblclick="${editable?`editTextFile('${id}','${raw}')`:canView?`viewFile('${id}','${raw}','${escapeHtml(t)}')`:'selectDriveItem(this)'}" onclick="selectDriveItem(this)">
+            <div class="drive-file-main">${thumb}<div><div class="drive-name">${safeName}${f.deleted?' ♻️':''}</div><div class="drive-meta">${fmtSize(f.size)}${t?' • '+escapeHtml(t):''}${filePath?' • 📁 '+escapeHtml(filePath):''}${f.deleted?' • Deleted (retained)':''}</div></div></div>
             <div class="item-actions">
               ${editable?`<button class="edit-btn" onclick="event.stopPropagation();editTextFile('${id}','${raw}')">✏️ Edit</button>`:canView?`<button class="view-btn" onclick="event.stopPropagation();viewFile('${id}','${raw}','${escapeHtml(t)}')">👁️ View</button>`:`<button class="view-btn" disabled>📄 File</button>`}
               <button class="rename-btn" onclick="event.stopPropagation();renameFile('${id}','${raw}')">Rename</button>
@@ -2057,7 +2067,7 @@ html,body{max-width:100%;overflow-x:hidden}
             </div></div>`;
         }).join('');
         list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';
-        status.textContent=`${folders.length} folder(s) • ${files.length} file(s)`;hydrateVideoThumbnails();
+        status.textContent=`${folders.length} folder(s) • ${files.length} file(s)${window.showAllFiles?' • including subfolders':''}`;hydrateVideoThumbnails();
       }catch(e){status.textContent='❌ '+e.message;}
     }
     function selectDriveItem(el) { document.querySelectorAll(".drive-item").forEach(x => x.style.outline = ""); el.style.outline = "2px solid #818cf8"; }

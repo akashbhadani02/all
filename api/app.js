@@ -271,7 +271,80 @@ app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
  } catch (e) { s.status(500).json({ error: e.message }); } });
 
 /* Files */
-app.get('/api/files', fileAuth, async (q, s) => { try { const db = await mongo(), fid = q.query.folderId || null; if (fid) { const id = oid(fid); if (!id) return s.status(400).json({ error: 'Invalid folder id' }); const f = await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if ((f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const folderDoc = fid ? await db.collection('folders').findOne({ _id: oid(fid) }) : null; const includeDeleted = Boolean(fid && folderDoc?.adminOnly && String(q.query.includeDeleted || '') === '1'); const filter = fid ? (includeDeleted ? { 'metadata.folderId': fid } : { 'metadata.folderId': fid, 'metadata.deleted': { $ne: true } }) : { $and: [{ $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }, { 'metadata.deleted': { $ne: true } }] }; const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1, 'metadata.deleted': 1, 'metadata.deletedAt': 1 }).toArray(); s.json(a.map(f => ({ id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate, type: f.contentType || 'application/octet-stream', deleted: !!f.metadata?.deleted, deletedAt: f.metadata?.deletedAt || null }))); } catch (e) { s.status(500).json({ error: e.message }); } });
+app.get('/api/files', fileAuth, async (q, s) => {
+  try {
+    const db = await mongo();
+    const fid = q.query.folderId || null;
+    const recursive = String(q.query.recursive || '') === '1';
+    let folderDoc = null;
+
+    if (fid) {
+      const id = oid(fid);
+      if (!id) return s.status(400).json({ error: 'Invalid folder id' });
+      folderDoc = await db.collection('folders').findOne({ _id: id });
+      if (!folderDoc) return s.status(404).json({ error: 'Folder not found' });
+      if ((folderDoc.password || folderDoc.passwordHash) && !folderUnlocked(q, fid))
+        return s.status(403).json({ error: 'Folder is locked' });
+    }
+
+    const includeDeleted = Boolean(fid && folderDoc?.adminOnly && String(q.query.includeDeleted || '') === '1');
+    let folderIds = [];
+    const folderPath = new Map();
+
+    if (recursive) {
+      const all = await db.collection('folders').find({ adminOnly: { $ne: true } }).project({ name: 1, parentId: 1, password: 1, passwordHash: 1 }).toArray();
+      const byParent = new Map();
+      for (const f of all) {
+        const p = f.parentId ? f.parentId.toString() : null;
+        if (!byParent.has(p)) byParent.set(p, []);
+        byParent.get(p).push(f);
+      }
+      const rootKey = fid ? String(fid) : null;
+      const queue = rootKey ? (byParent.get(rootKey) || []) : (byParent.get(null) || []);
+      const seen = new Set();
+      if (rootKey) folderIds.push(rootKey);
+      for (const f of queue) {
+        const stack = [{ f, parentPath: fid ? (folderDoc?.name || '') : '' }];
+        while (stack.length) {
+          const { f: cur, parentPath } = stack.pop();
+          const id = cur._id.toString();
+          if (seen.has(id)) continue;
+          // Do not expose files inside a locked nested folder unless it has been unlocked.
+          if ((cur.password || cur.passwordHash) && !folderUnlocked(q, id)) continue;
+          seen.add(id);
+          folderIds.push(id);
+          const pathText = parentPath ? parentPath + '/' + cur.name : cur.name;
+          folderPath.set(id, pathText);
+          for (const child of (byParent.get(id) || [])) stack.push({ f: child, parentPath: pathText });
+        }
+      }
+    }
+
+    let filter;
+    if (recursive) {
+      const ors = [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }];
+      if (folderIds.length) ors.push({ 'metadata.folderId': { $in: folderIds } });
+      // For a specific folder, never include root files in the result.
+      if (fid) filter = { 'metadata.folderId': { $in: folderIds }, ...(includeDeleted ? {} : { 'metadata.deleted': { $ne: true } }) };
+      else filter = { $or: ors, 'metadata.deleted': { $ne: true } };
+    } else {
+      filter = fid
+        ? (includeDeleted ? { 'metadata.folderId': fid } : { 'metadata.folderId': fid, 'metadata.deleted': { $ne: true } })
+        : { $and: [{ $or: [{ 'metadata.folderId': null }, { 'metadata.folderId': { $exists: false } }] }, { 'metadata.deleted': { $ne: true } }] };
+    }
+
+    const a = await db.collection('uploads.files').find(filter).sort({ uploadDate: -1 }).project({ filename: 1, length: 1, uploadDate: 1, contentType: 1, 'metadata.folderId': 1, 'metadata.deleted': 1, 'metadata.deletedAt': 1 }).toArray();
+    s.json(a.map(f => {
+      const folderId = f.metadata?.folderId ? String(f.metadata.folderId) : null;
+      return {
+        id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate,
+        type: f.contentType || 'application/octet-stream', folderId,
+        path: recursive && folderId ? (folderPath.get(folderId) || '') : '',
+        deleted: !!f.metadata?.deleted, deletedAt: f.metadata?.deletedAt || null
+      };
+    }));
+  } catch (e) { s.status(500).json({ error: e.message }); }
+});
 
 // Chunked uploads keep each request small enough for serverless platforms
 // (such as Vercel) while allowing videos/files of any practical size.
