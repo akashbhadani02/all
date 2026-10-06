@@ -28,59 +28,24 @@ async function getSettings() {
 }
 
 // Dedicated admin media folder.
-// All existing image/video/audio files are moved here when the admin opens it.
-// New media uploaded at the root is automatically stored here as well.
+// IMPORTANT: this folder is only a manually created admin folder.
+// It NEVER moves, hides, or reassigns user-uploaded files. Every image,
+// video, audio, PDF and other file remains in the exact folder where it was uploaded.
 async function ensureAdminMediaFolder(db) {
   let f = await db.collection('folders').findOne({ name: 'Media', parentId: null });
   if (!f) {
     const r = await db.collection('folders').insertOne({
-      name: 'Media',
-      parentId: null,
-      password: 'media',
-      adminOnly: true,
-      createdAt: new Date()
+      name: 'Media', parentId: null, password: 'media', adminOnly: true, createdAt: new Date()
     });
     f = { _id: r.insertedId, name: 'Media', parentId: null, password: 'media', adminOnly: true };
   } else {
-    await db.collection('folders').updateOne(
-      { _id: f._id },
-      { $set: { password: 'media', adminOnly: true, updatedAt: new Date() }, $unset: { passwordHash: '', passwordSalt: '' } }
-    );
-    f.password = 'media';
-    f.adminOnly = true;
+    await db.collection('folders').updateOne({ _id: f._id }, {
+      $set: { password: 'media', adminOnly: true, updatedAt: new Date() },
+      $unset: { passwordHash: '', passwordSalt: '' }
+    });
+    f.password = 'media'; f.adminOnly = true;
   }
-
-  // Do NOT pull media out of an existing user folder. Changing a folder
-  // password must never move, hide, or detach its photos/videos.
-  // Media is collected here only when it is unassigned/root-level, already
-  // managed by this Media folder, or retained as a deleted/recoverable file.
-  const mediaTypes = /^(image|video|audio)\//i;
-  const mediaFiles = await db.collection('uploads.files')
-    .find({
-      $or: [
-        {
-          contentType: { $regex: mediaTypes },
-          $or: [
-            { 'metadata.folderId': null },
-            { 'metadata.folderId': { $exists: false } },
-            { 'metadata.adminMediaFolder': true }
-          ]
-        },
-        { 'metadata.deleted': true }
-      ]
-    })
-    .project({ _id: 1 })
-    .toArray();
-
-  const folderId = f._id.toString();
-  if (mediaFiles.length) {
-    const ids = mediaFiles.map(x => x._id);
-    await db.collection('uploads.files').updateMany(
-      { _id: { $in: ids } },
-      { $set: { 'metadata.folderId': folderId, 'metadata.adminMediaFolder': true } }
-    );
-  }
-  return { ...f, movedFiles: mediaFiles.length };
+  return { ...f, movedFiles: 0 };
 }
 
 const DEFAULT_LINKS = [

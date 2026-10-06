@@ -36,3 +36,7 @@ Run:
 npm install
 npm start
 ```
+
+
+## Media location rule
+All uploaded files, including images, videos, audio, PDFs and other files, remain in the exact folder selected during upload. The Media admin folder never automatically moves or hides files.
