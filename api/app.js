@@ -1,4 +1,11 @@
 const express = require('express'), path = require('path'), multer = require('multer'), crypto = require('crypto'), fs = require('fs');
+const MIME_BY_EXT = {
+  '.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.gif':'image/gif','.webp':'image/webp','.bmp':'image/bmp','.svg':'image/svg+xml','.heic':'image/heic','.heif':'image/heif',
+  '.mp4':'video/mp4','.webm':'video/webm','.mov':'video/quicktime','.m4v':'video/x-m4v','.avi':'video/x-msvideo','.mkv':'video/x-matroska','.3gp':'video/3gpp',
+  '.mp3':'audio/mpeg','.wav':'audio/wav','.ogg':'audio/ogg','.m4a':'audio/mp4','.aac':'audio/aac',
+  '.pdf':'application/pdf','.txt':'text/plain','.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json'
+};
+function detectMime(name, current) { const c=String(current||'').toLowerCase(); if (c && c !== 'application/octet-stream') return current; return MIME_BY_EXT[path.extname(String(name||'')).toLowerCase()] || current || 'application/octet-stream'; }
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
 const app = express(), upload = multer({ limits: { files: 1 }, storage: multer.diskStorage({ destination: (req, file, cb) => cb(null, '/tmp'), filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '-' + Date.now()) }) });
 let dbPromise;
@@ -318,7 +325,7 @@ app.get('/api/files', fileAuth, async (q, s) => {
       const folderId = f.metadata?.folderId ? String(f.metadata.folderId) : null;
       return {
         id: f._id.toString(), name: f.filename, size: f.length, date: f.uploadDate,
-        type: f.contentType || 'application/octet-stream', folderId,
+        type: detectMime(f.filename, f.contentType), folderId,
         path: recursive && folderId ? (folderPath.get(folderId) || '') : '',
         deleted: !!f.metadata?.deleted, deletedAt: f.metadata?.deletedAt || null
       };
@@ -462,8 +469,8 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
 });
 
 app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
-app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
-app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', f.contentType || 'application/octet-stream'); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
+app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', detectMime(f.filename, f.contentType)); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
+app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', detectMime(f.filename, f.contentType)); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 
 app.get('/api/files/:id/content', fileAuth, async (q, s) => {
   try {
