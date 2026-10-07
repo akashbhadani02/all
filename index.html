@@ -3135,3 +3135,177 @@ html,body{max-width:100%;overflow-x:hidden}
   });
 })();
 </script>
+
+<style id="mobile-card-overlap-absolute-final">
+/* FINAL OVERRIDE: mobile file cards are independent, content-driven grid items. */
+@media (max-width:700px){
+  #driveList.drive-grid{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    grid-auto-rows:max-content !important;
+    grid-auto-flow:row !important;
+    align-items:start !important;
+    align-content:start !important;
+    gap:10px !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    padding:10px !important;
+  }
+
+  #driveList.drive-grid > .drive-item{
+    display:flex !important;
+    flex-direction:column !important;
+    align-self:start !important;
+    justify-self:stretch !important;
+    position:relative !important;
+    float:none !important;
+    clear:none !important;
+    grid-row:auto !important;
+    grid-column:auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    margin:0 !important;
+    padding:9px !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+    transform:none !important;
+  }
+
+  #driveList.drive-grid > .drive-item > .drive-file-main{
+    display:block !important;
+    position:static !important;
+    width:100% !important;
+    min-width:0 !important;
+    height:auto !important;
+    min-height:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+  }
+
+  #driveList.drive-grid > .drive-item.folder-card > .drive-file-main{
+    display:flex !important;
+    align-items:center !important;
+    gap:8px !important;
+  }
+
+  #driveList.drive-grid > .drive-item > .drive-file-main > div:last-child{
+    width:100% !important;
+    min-width:0 !important;
+    height:auto !important;
+    margin:7px 0 0 !important;
+    padding:0 !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+  }
+
+  #driveList.drive-grid > .drive-item.folder-card > .drive-file-main > div:last-child{
+    margin:0 !important;
+  }
+
+  #driveList.drive-grid .image-thumb,
+  #driveList.drive-grid .video-thumb,
+  #driveList.drive-grid .drive-icon{
+    position:relative !important;
+    float:none !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    height:105px !important;
+    min-height:105px !important;
+    max-height:105px !important;
+    margin:0 !important;
+    box-sizing:border-box !important;
+    flex:none !important;
+  }
+
+  #driveList.drive-grid .folder-card .drive-icon{
+    width:58px !important;
+    min-width:58px !important;
+    max-width:58px !important;
+    height:58px !important;
+    min-height:58px !important;
+    max-height:58px !important;
+  }
+
+  #driveList.drive-grid .drive-name,
+  #driveList.drive-grid .drive-meta,
+  #driveList.drive-grid .drive-path-mini{
+    position:static !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:auto !important;
+    max-height:none !important;
+    margin:0 !important;
+    box-sizing:border-box !important;
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+  }
+
+  #driveList.drive-grid .drive-meta{ margin-top:4px !important; }
+  #driveList.drive-grid .drive-path-mini{ margin-top:4px !important; }
+
+  #driveList.drive-grid > .drive-item > .item-actions{
+    position:static !important;
+    float:none !important;
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    grid-auto-rows:max-content !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    margin:9px 0 0 !important;
+    padding:0 !important;
+    gap:6px !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+    flex:none !important;
+  }
+
+  #driveList.drive-grid .item-actions button{
+    position:static !important;
+    float:none !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:34px !important;
+    max-height:none !important;
+    margin:0 !important;
+    padding:7px 4px !important;
+    box-sizing:border-box !important;
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+    line-height:1.2 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    text-align:center !important;
+    flex:none !important;
+  }
+}
+@media (max-width:380px){
+  #driveList.drive-grid{gap:8px !important;padding:8px !important;}
+  #driveList.drive-grid > .drive-item{padding:7px !important;}
+  #driveList.drive-grid .image-thumb,
+  #driveList.drive-grid .video-thumb,
+  #driveList.drive-grid .drive-icon{height:92px !important;min-height:92px !important;max-height:92px !important;}
+  #driveList.drive-grid .item-actions{gap:5px !important;}
+  #driveList.drive-grid .item-actions button{min-height:32px !important;font-size:8px !important;padding:6px 3px !important;}
+}
+</style>
