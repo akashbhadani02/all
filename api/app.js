@@ -251,6 +251,8 @@ app.delete('/api/folders/:id', fileAuth, async (q, s) => { try {
 /* Files */
 app.get('/api/files', fileAuth, async (q, s) => {
   try {
+    // File lists must always reflect the latest upload/delete state.
+    s.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const db = await mongo();
     const fid = q.query.folderId || null;
     const recursive = String(q.query.recursive || '') === '1';

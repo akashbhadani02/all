@@ -1847,7 +1847,6 @@ html,body{max-width:100%;overflow-x:hidden}
         <button class="drive-btn" id="backBtn" onclick="goBack()" disabled>← Back</button>
         <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">🏠 Home</button>
         <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
-        <button class="drive-btn all-files-btn" id="allFilesBtn" type="button" onclick="toggleAllFiles()">📋 All Files</button>
         <label class="drive-btn upload-label">📤 Upload Files
           <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()"><input type="file" id="replaceFileInput" accept="*/*" hidden onchange="handleReplaceFile(this)">
         </label>
@@ -1998,13 +1997,7 @@ html,body{max-width:100%;overflow-x:hidden}
       } catch (e) { err.textContent = "❌ " + (e.message || "Wrong password"); err.style.display = "block"; inp.value = ""; inp.focus(); }
     }
     async function showFileSharing() {
-      const m = document.getElementById("fileModal"); m.style.display = "flex"; m.setAttribute("aria-hidden", "false"); window.driveStack = []; window.currentFolder = null; window.currentFolderToken = null; window.showAllFiles = true; await loadDrive();
-    }
-    function toggleAllFiles(){
-      window.showAllFiles = !window.showAllFiles;
-      const b=document.getElementById('allFilesBtn');
-      if(b){ b.textContent=window.showAllFiles?'📋 All Files':'📂 Current Folder'; b.classList.toggle('active',window.showAllFiles); }
-      loadDrive();
+      const m = document.getElementById("fileModal"); m.style.display = "flex"; m.setAttribute("aria-hidden", "false"); window.driveStack = []; window.currentFolder = null; window.currentFolderToken = null; window.showAllFiles = false; await loadDrive();
     }
     function closeFileModal() { const m = document.getElementById("fileModal"); m.style.display = "none"; m.setAttribute("aria-hidden", "true"); sessionStorage.removeItem("fileShareToken"); }
     document.getElementById("fileSharePasswordInput").addEventListener("keydown", e => { if (e.key === "Enter") unlockFileSharing(); });
@@ -2026,10 +2019,9 @@ html,body{max-width:100%;overflow-x:hidden}
       const search=document.getElementById('driveSearch');if(search)search.value='';
       try{
         const pid=window.currentFolder||'',qs=pid?'?parentId='+encodeURIComponent(pid):'';
-        const recursiveParam=window.showAllFiles?'&recursive=1':'';
         const [fr,ff]=await Promise.all([
           fetch('/api/folders'+qs,{headers:folderHeaders()}),
-          fetch('/api/files'+(pid?'?folderId='+encodeURIComponent(pid)+(window.currentFolderName==='Media'?'&includeDeleted=1':'')+recursiveParam:'?recursive=1'),{headers:folderHeaders()})
+          fetch('/api/files'+(pid?'?folderId='+encodeURIComponent(pid)+(window.currentFolderName==='Media'?'&includeDeleted=1':''):'') ,{headers:folderHeaders()})
         ]);
         if(fr.status===403||ff.status===403)throw new Error('Folder is locked');
         if(!fr.ok||!ff.ok)throw new Error('Could not load files');
@@ -2067,7 +2059,7 @@ html,body{max-width:100%;overflow-x:hidden}
             </div></div>`;
         }).join('');
         list.innerHTML=out||'<div class="drive-empty">📂 This folder is empty<br><small>Create a folder or upload a file.</small></div>';
-        status.textContent=`${folders.length} folder(s) • ${files.length} file(s)${window.showAllFiles?' • including subfolders':''} • Files stay in their upload folder`;hydrateVideoThumbnails();
+        status.textContent=`${folders.length} folder(s) • ${files.length} file(s) • Showing files in this folder only`;hydrateVideoThumbnails();
       }catch(e){status.textContent='❌ '+e.message;}
     }
     function selectDriveItem(el) { document.querySelectorAll(".drive-item").forEach(x => x.style.outline = ""); el.style.outline = "2px solid #818cf8"; }
