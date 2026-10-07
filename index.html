@@ -2911,6 +2911,116 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 </style>
 
+
+<style id="mobile-card-no-overlap-ultimate">
+/* Mobile: exactly 2 independent cards per row. No fixed heights, no overlap. */
+@media (max-width: 700px){
+  .drive-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-auto-rows:auto!important;
+    align-items:start!important;
+    align-content:start!important;
+    gap:10px!important;
+    padding:10px!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+  }
+  .drive-item.file-card,.drive-item.folder-card{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:8px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:8px!important;
+    overflow:visible!important;
+    position:relative!important;
+    transform:none!important;
+  }
+  .drive-item .card-preview,.drive-item .card-info,.drive-item .item-actions{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    flex:none!important;
+    box-sizing:border-box!important;
+  }
+  .card-preview .image-thumb,.card-preview .video-thumb{
+    width:100%!important;
+    height:105px!important;
+    max-width:100%!important;
+    min-width:0!important;
+    object-fit:cover!important;
+    display:block!important;
+  }
+  .card-info{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:4px!important;
+  }
+  .drive-name{
+    width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+    line-height:1.25!important;
+  }
+  .drive-meta,.drive-path-mini{
+    width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+    line-height:1.25!important;
+  }
+  .drive-item .item-actions{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:6px!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  .drive-item .item-actions button{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:34px!important;
+    box-sizing:border-box!important;
+    margin:0!important;
+    padding:7px 5px!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+    line-height:1.2!important;
+    flex:none!important;
+  }
+}
+@media (max-width:360px){
+  .drive-grid{gap:7px!important;padding:7px!important;}
+  .drive-item.file-card,.drive-item.folder-card{padding:7px!important;gap:7px!important;}
+  .card-preview .image-thumb,.card-preview .video-thumb{height:92px!important;}
+  .drive-item .item-actions{gap:5px!important;}
+  .drive-item .item-actions button{min-height:32px!important;font-size:8px!important;padding:6px 4px!important;}
+}
+</style>
+
 </html><style id="mobile-no-overlap-final">
 /* FINAL MOBILE FILE MANAGER: no overlap, no hidden actions */
 @media (max-width:700px){
