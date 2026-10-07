@@ -1691,7 +1691,7 @@ html,body{max-width:100%;overflow-x:hidden}
   .drive-name{font-size:11px}
   .drive-meta{font-size:8px}
   .item-actions{gap:4px!important}
-  .item-actions button{font-size:8px!important;min-height:30px;padding:5px 2px!important}
+  .item-actions button{font-size:10px!important;min-height:34px;padding:6px 3px!important}
 }
 @media (max-width:330px){
   .drive-grid{grid-template-columns:1fr}
@@ -1970,6 +1970,7 @@ html,body{max-width:100%;overflow-x:hidden}
     document.getElementById('linkPasswordInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') unlockLink(); });
 
     /* PAGE PASSWORD */
+    document.getElementById("passwordInput")?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); checkPassword(); } });
     async function checkPassword() {
       const input = document.getElementById("passwordInput"), error = document.getElementById("error");
       try { const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: input.value }) }); if (!r.ok) throw Error(); const d = await r.json(); sessionStorage.setItem("linkPageToken", d.token); sessionStorage.setItem("linkPageUnlocked", "true"); document.getElementById("passwordScreen").style.display = "none"; document.getElementById("mainContent").style.display = "flex"; error.style.display = "none"; }
