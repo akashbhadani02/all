@@ -372,12 +372,10 @@ app.post('/api/files/chunk', fileAuth, chunkUpload.single('chunk'), async (q, s)
     }
 
     const db = await mongo();
-    if (!fid && /^(image|video|audio)\//i.test(mime)) {
-      const mf = await ensureAdminMediaFolder(db);
-      fid = mf._id.toString();
-    } else {
-      await validateUploadTarget(q, db, fid);
-    }
+    // Keep every upload in the folder selected by the user. In particular,
+    // images/videos must NOT be silently moved into the admin Media folder.
+    // Root uploads stay at root (folderId = null).
+    await validateUploadTarget(q, db, fid);
 
     const chunks = db.collection('upload_chunks');
     await chunks.updateOne(
@@ -469,7 +467,47 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
 });
 
 app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
-app.get('/api/files/:id/view', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', detectMime(f.filename, f.contentType)); s.setHeader('Content-Disposition', 'inline'); s.setHeader('Accept-Ranges', 'bytes'); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
+app.get('/api/files/:id/view', fileAuth, async (q, s) => {
+  try {
+    const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id });
+    if (!f) return s.status(404).send('File not found');
+    const fid = f.metadata?.folderId;
+    if (fid) {
+      const fo = await db.collection('folders').findOne({ _id: oid(fid) });
+      if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked');
+    }
+    const mime = detectMime(f.filename, f.contentType);
+    const total = Number(f.length || 0);
+    s.setHeader('Content-Type', mime);
+    s.setHeader('Content-Disposition', 'inline');
+    s.setHeader('Accept-Ranges', 'bytes');
+
+    // Browser video players commonly request byte ranges. Supporting Range
+    // makes MP4/WebM/MOV previews and seeking reliable on mobile browsers.
+    const range = q.headers.range;
+    if (range && total > 0) {
+      const m = /^bytes=(\d*)-(\d*)$/i.exec(String(range).trim());
+      if (m) {
+        let start = m[1] === '' ? 0 : Number(m[1]);
+        let end = m[2] === '' ? total - 1 : Number(m[2]);
+        if (m[1] === '' && m[2]) start = Math.max(0, total - Number(m[2]));
+        if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= total || end < start) {
+          s.status(416).setHeader('Content-Range', `bytes */${total}`).end();
+          return;
+        }
+        end = Math.min(end, total - 1);
+        const length = end - start + 1;
+        s.status(206);
+        s.setHeader('Content-Range', `bytes ${start}-${end}/${total}`);
+        s.setHeader('Content-Length', String(length));
+        new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id, { start, end: end + 1 }).pipe(s);
+        return;
+      }
+    }
+    s.setHeader('Content-Length', String(total));
+    new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s);
+  } catch (e) { s.status(400).send('Invalid file id'); }
+});
 app.get('/api/files/:id/download', fileAuth, async (q, s) => { try { const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id }); if (!f) return s.status(404).send('File not found'); const fid = f.metadata?.folderId; if (fid) { const fo = await db.collection('folders').findOne({ _id: oid(fid) }); if ((fo?.password || fo?.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).send('Folder is locked'); } s.setHeader('Content-Type', detectMime(f.filename, f.contentType)); s.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`); new GridFSBucket(db, { bucketName: 'uploads' }).openDownloadStream(id).pipe(s); } catch (e) { s.status(400).send('Invalid file id'); } });
 
 app.get('/api/files/:id/content', fileAuth, async (q, s) => {
