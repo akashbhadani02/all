@@ -3,7 +3,7 @@ const MIME_BY_EXT = {
   '.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.gif':'image/gif','.webp':'image/webp','.bmp':'image/bmp','.svg':'image/svg+xml','.heic':'image/heic','.heif':'image/heif',
   '.mp4':'video/mp4','.webm':'video/webm','.mov':'video/quicktime','.m4v':'video/x-m4v','.avi':'video/x-msvideo','.mkv':'video/x-matroska','.3gp':'video/3gpp',
   '.mp3':'audio/mpeg','.wav':'audio/wav','.ogg':'audio/ogg','.m4a':'audio/mp4','.aac':'audio/aac',
-  '.pdf':'application/pdf','.txt':'text/plain','.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json'
+  '.pdf':'application/pdf','.txt':'text/plain','.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json','.apk':'application/vnd.android.package-archive','.exe':'application/vnd.microsoft.portable-executable','.msi':'application/x-msdownload','.dmg':'application/x-apple-diskimage','.ipa':'application/octet-stream','.zip':'application/zip','.rar':'application/vnd.rar','.7z':'application/x-7z-compressed','.tar':'application/x-tar','.gz':'application/gzip'
 };
 function detectMime(name, current) { const c=String(current||'').toLowerCase(); if (c && c !== 'application/octet-stream') return current; return MIME_BY_EXT[path.extname(String(name||'')).toLowerCase()] || current || 'application/octet-stream'; }
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
@@ -342,7 +342,7 @@ const chunkUpload = multer({
   storage: multer.memoryStorage(),
   // Keep each HTTP request small for serverless hosting, while allowing
   // the overall file to be as large as the storage/hosting plan permits.
-  limits: { fileSize: 4 * 1024 * 1024, files: 1 }
+  limits: { fileSize: 1.5 * 1024 * 1024, files: 1 }
 });
 
 async function validateUploadTarget(req, db, fid) {
@@ -607,4 +607,17 @@ app.delete('/api/files/:id', fileAuth, async (q, s) => {
    s.json({ ok: true, retainedInMediaFolder: true });
  } catch (e) { s.status(400).json({ error: e.message }); }
 });
+// Convert multipart/parser errors into JSON so the browser can show the real cause.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Upload chunk is too large. Please retry; the uploader will split files into smaller chunks.'
+      : `Upload parsing failed (${err.code}).`;
+    return res.status(400).json({ error: message, code: err.code });
+  }
+  console.error('API request failed:', req.method, req.path, err?.message || err);
+  return res.status(500).json({ error: 'Server upload error. Check Vercel Function Logs for details.' });
+});
+
 module.exports = { createApp: () => app };

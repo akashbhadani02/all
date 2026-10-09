@@ -2064,7 +2064,7 @@ html,body{max-width:100%;overflow-x:hidden}
         <button class="drive-btn home-btn" id="homeBtn" type="button" onclick="goHome()">🏠 Home</button>
         <button class="drive-btn" onclick="showNewFolder()">＋ New Folder</button>
         <label class="drive-btn upload-label">📤 Upload Files
-          <input type="file" id="fileInput" multiple hidden onchange="uploadSelectedFiles()"><input type="file" id="replaceFileInput" hidden onchange="handleReplaceFile(this)">
+          <input type="file" id="fileInput" accept="*/*" multiple hidden onchange="uploadSelectedFiles()"><input type="file" id="replaceFileInput" accept="*/*" hidden onchange="handleReplaceFile(this)">
         </label>
         <label class="drive-btn upload-label">📂 Upload Folder
           <input type="file" id="folderInput" webkitdirectory directory multiple hidden
@@ -2076,7 +2076,7 @@ html,body{max-width:100%;overflow-x:hidden}
           <div class="progress-bar">
             <div id="uploadFill" class="progress-fill"></div>
           </div>
-          <div class="progress-text">All file types are supported, including EXE, APK, ZIP, documents, images, audio and video. Large files and videos are uploaded in 3 MB chunks. Use “Upload Folder” to upload
+          <div class="progress-text">Large files and videos are uploaded in 3 MB chunks. Use “Upload Folder” to upload
             an entire folder at once while preserving its subfolders. There is no app-level video size limit.</div>
         </div>
         <button class="drive-btn refresh-btn" onclick="loadDrive()">↻</button>
@@ -2446,7 +2446,7 @@ html,body{max-width:100%;overflow-x:hidden}
 
     function uploadOneChunked(file, folderId, onProgress) {
       return new Promise((resolve, reject) => {
-        const CHUNK = 3 * 1024 * 1024;
+        const CHUNK = 1024 * 1024;
         const total = Math.max(1, Math.ceil(file.size / CHUNK));
         const uploadId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random()).replace('.', ''));
         let index = 0, uploaded = 0, finished = false;
@@ -2466,6 +2466,7 @@ html,body{max-width:100%;overflow-x:hidden}
 
           const xhr = new XMLHttpRequest();
           xhr.open('POST', '/api/files/chunk');
+          xhr.timeout = 120000;
           const hh = authHeaders();
           if (folderId) {
             const folderToken = file.__folderToken || (window.currentFolder === folderId ? window.currentFolderToken : null);
@@ -2506,9 +2507,9 @@ html,body{max-width:100%;overflow-x:hidden}
                   }
                 })();
               }
-            } else fail(d.error || 'Upload failed');
+            } else fail(d.error || `Upload failed (HTTP ${xhr.status || 'network error'}).`);
           };
-          xhr.onerror = () => fail('Upload failed. Please try again.');
+          xhr.onerror = () => fail('Upload network error. Check your connection and Vercel deployment logs, then retry.');
           xhr.ontimeout = () => fail('Upload timed out. Please try again.');
           xhr.send(fd);
         };
