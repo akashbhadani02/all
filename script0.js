@@ -253,7 +253,7 @@ async function ensureRelativeFolder(relativePath){
 }
 
 async function uploadOneChunked(file,folderId,onProgress){
-  const CHUNK=3*1024*1024;
+  const CHUNK=1024*1024;
   const total=Math.max(1,Math.ceil(file.size/CHUNK));
   const uploadId=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random()).replace('.',''));
   const MAX_PARALLEL=4;
@@ -290,9 +290,9 @@ async function uploadOneChunked(file,folderId,onProgress){
           uploaded+=blob.size;
           if(onProgress)onProgress(Math.min(99,Math.round((uploaded/file.size)*100)));
           resolve(d);
-        } else reject(new Error(d.error||'Upload failed'));
+        } else reject(new Error((d.error||('Upload failed (HTTP '+xhr.status+')'))));
       };
-      xhr.onerror=()=>reject(new Error('Upload failed. Please try again.'));
+      xhr.onerror=()=>reject(new Error('Network/CORS/Vercel protection error: no readable response. Check Vercel Deployment Protection and Function Logs.')); 
       xhr.ontimeout=()=>reject(new Error('Upload timed out. Please try again.'));
       xhr.send(fd);
     });
