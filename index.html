@@ -2812,13 +2812,10 @@ html,body{max-width:100%;overflow-x:hidden}
 
     /* ================= SESSION ================= */
 
-    /* Always require the main page password when the page is opened/refreshed.
-       Do not auto-bypass the password using sessionStorage. */
-    sessionStorage.removeItem("linkPageUnlocked");
-    sessionStorage.removeItem("linkPageToken");
-    document.getElementById("passwordScreen").style.display = "flex";
-    document.getElementById("mainContent").style.display = "none";
-    setTimeout(() => document.getElementById("passwordInput")?.focus(), 50);
+    /* Main page is public: do not show the page-password screen. */
+    sessionStorage.setItem("linkPageUnlocked", "true");
+    document.getElementById("passwordScreen").style.display = "none";
+    document.getElementById("mainContent").style.display = "flex";
     loadLinks();
 
 
