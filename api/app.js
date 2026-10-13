@@ -442,7 +442,7 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
     }
 
     const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(docs[0].name, {
-      contentType: docs[0].mime || 'application/octet-stream',
+      contentType: detectMime(docs[0].name, docs[0].mime),
       metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid }
     });
 
@@ -466,7 +466,7 @@ app.post('/api/files/chunk/complete', fileAuth, async (q, s) => {
   }
 });
 
-app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: q.file.mimetype || 'application/octet-stream', metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
+app.post('/api/files', fileAuth, upload.single('file'), async (q, s) => { try { if (!q.file) return s.status(400).json({ error: 'No file selected' }); let fid = q.body?.folderId || null, db = await mongo(); if (fid) { const id = oid(fid), f = id && await db.collection('folders').findOne({ _id: id }); if (!f) return s.status(404).json({ error: 'Folder not found' }); if (!f.adminOnly && (f.password || f.passwordHash) && !folderUnlocked(q, fid)) return s.status(403).json({ error: 'Folder is locked' }); } const st = new GridFSBucket(db, { bucketName: 'uploads' }).openUploadStream(q.file.originalname, { contentType: detectMime(q.file.originalname, q.file.mimetype), metadata: { uploadedBy: 'direct-links', source: 'mongodb-gridfs', folderId: fid } }); await new Promise((resolve, reject) => { const rs = fs.createReadStream(q.file.path); rs.on('error', reject); st.on('finish', resolve); st.on('error', reject); rs.pipe(st); }); try { fs.unlinkSync(q.file.path); } catch { } s.json({ ok: true, size: q.file.size, name: q.file.originalname }); } catch (e) { if (q.file?.path) try { fs.unlinkSync(q.file.path) } catch { } s.status(500).json({ error: e.message }); } });
 app.get('/api/files/:id/view', fileAuth, async (q, s) => {
   try {
     const db = await mongo(), id = oid(q.params.id), f = id && await db.collection('uploads.files').findOne({ _id: id });
