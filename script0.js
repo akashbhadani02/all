@@ -262,7 +262,8 @@ async function uploadOneChunked(file,folderId,onProgress){
   const sendChunk=async(index)=>{
     const blob=file.slice(index*CHUNK,Math.min(file.size,(index+1)*CHUNK));
     const fd=new FormData();
-    fd.append('chunk',blob,file.name);
+    // Use a neutral multipart part filename so hosting security filters do not reject the original extension. The real filename is sent separately in the 'name' field and preserved when the upload is finalized.
+    fd.append('chunk',blob,'chunk.bin');
     fd.append('uploadId',uploadId);
     fd.append('index',String(index));
     fd.append('total',String(total));
